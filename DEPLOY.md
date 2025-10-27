@@ -4,10 +4,10 @@
 
 ### 1. Проверка перед деплоем
 ```bash
-npm run type-check  # Проверка TypeScript
-npm run lint        # Проверка линтера
-npm run build       # Сборка
-npm run start       # Тест сборки
+yarn type-check  # Проверка TypeScript
+yarn lint        # Проверка линтера
+yarn build       # Сборка
+yarn start       # Тест сборки
 ```
 
 ### 2. Деплой на Vercel (рекомендуется)
@@ -30,14 +30,14 @@ sudo npm install -g pm2
 ```bash
 git clone your-repo
 cd your-repo
-npm install
+yarn install
 cp .env.example .env  # Заполните значения
-npm run build
+yarn build
 ```
 
 #### Запуск:
 ```bash
-pm2 start npm --name "nextjs-app" -- start
+pm2 start yarn --name "nextjs-app" -- start
 pm2 save
 pm2 startup
 ```

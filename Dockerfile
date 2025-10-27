@@ -12,15 +12,15 @@ COPY package*.json ./
 COPY yarn.lock ./
 
 # Устанавливаем зависимости (пользуемся кэшем Docker)
-# --legacy-peer-deps - для решения проблем с совместимостью
-RUN npm ci --legacy-peer-deps
+# --frozen-lockfile - используем точные версии из yarn.lock без обновлений
+RUN yarn install --frozen-lockfile
 
 # Копируем исходный код
 COPY . .
 
 # Собираем приложение для продакшена
 # Переменные окружения будут установлены при запуске контейнера
-RUN npm run build
+RUN yarn build
 
 # Этап 2: Продакшен (минимальный образ)
 FROM node:20-alpine AS runner
