@@ -1,0 +1,29 @@
+# docker-compose.yml для удобного запуска приложения
+version: '3.8'
+
+services:
+  # Next.js приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # Проброска порта: хост:контейнер
+      - "3000:3000"
+    environment:
+      # Переменные окружения
+      # Замените на реальные значения или используйте .env файл
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    # Перезапуск контейнера при сбое
+    restart: unless-stopped
+    # Имя контейнера
+    container_name: nextjs-app
+
+# Использование:
+# 1. Создайте .env файл с переменными окружения
+# 2. Запуск: docker-compose up -d
+# 3. Остановка: docker-compose down
+# 4. Пересборка: docker-compose up -d --build
+# 5. Просмотр логов: docker-compose logs -f app
+

@@ -1,0 +1,58 @@
+# См. https://help.github.com/articles/ignoring-files/ для дополнительной информации об игнорировании файлов
+
+# Зависимости
+# node_modules содержит все установленные пакеты npm/yarn
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# npm lock файл (если используете yarn)
+# Если используете npm, НЕ добавляйте эту строку
+package-lock.json
+
+# Тестирование
+# Файлы покрытия кода тестами
+/coverage
+
+# Сборка Next.js
+# .next - директория с собранным приложением (не нужна в репозитории)
+/.next/
+/out/
+
+# Разработка
+# Файлы окружения содержат секретные данные (ключи API, пароли и т.д.)
+.env*.local
+.env
+# НЕ добавляйте .env.example - это шаблон для других разработчиков
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Прочие
+# Системные файлы
+.DS_Store
+*.pem
+
+# Vercel (хостинг для Next.js)
+# Файлы конфигурации Vercel содержат настройки деплоя
+.vercel
+
+# TypeScript
+# Временные файлы TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE (редакторы кода)
+# Настройки редакторов не должны быть в репозитории
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Временные файлы
+*.tmp
+*.temp
