@@ -13,9 +13,9 @@ const nextConfig: NextConfig = {
   // Создаёт минимальный .next/standalone папку со всем необходимым
   output: 'standalone',
 
-  // Оптимизация изображений (если используете next/image)
+  // Оптимизация изображений
   images: {
-    // Разрешаем изображения с вашего домена Supabase
+    // Разрешаем изображения с домена Supabase
     remotePatterns: [
       {
         protocol: 'https',
