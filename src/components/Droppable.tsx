@@ -18,6 +18,7 @@ export function Droppable(props: Readonly<DroppableProps>) {
   const style = {
     backgroundColor: isOver ? 'lightblue' : 'white',
     opacity: props?.noOpacity || isOver ? 1 : 0.5,
+    touchAction: 'none',
   };
 
   return (

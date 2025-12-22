@@ -1,18 +1,121 @@
 
 import { useState, useEffect } from 'react';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import { Button } from '@mui/material';
+import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { Button, useMediaQuery, useTheme } from '@mui/material';
 import { Draggable } from '../components/Draggable';
 import { Droppable, isDroppable } from '../components/Droppable';
 import { generateDroppables, generateDraggables, shuffleArray } from '../utils/dnd-helpers';
+import * as Msg from '../components/Notifications';
 import { withAuth } from "@/components/withAuth";
+import styles from './dnd-15-puzzle.module.css';
 
 function DndGame15() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Настройка сенсоров для поддержки touch-событий на мобильных устройствах
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 0,
+        tolerance: 8,
+      },
+    })
+  );
+
   const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
     generateDroppables(16, 'Ячейка ')
   );
 
   const draggableItems = generateDraggables(15, '');
+
+  // Функция для проверки решаемости комбинации "15-puzzle"
+  // Принимает массив из 16 элементов, где 0 - пустая клетка
+  const isSolvable = (board: number[]): boolean => {
+    // Убедимся, что доска — массив из 16 элементов
+    if (board.length !== 16) {
+      throw new Error('Доска должна быть 4×4 (16 элементов).');
+    }
+
+    // 1. Собираем последовательность без пустой клетки (0)
+    const tiles = board.filter(x => x !== 0);
+
+    // 2. Считаем инверсии (I)
+    let inversions = 0;
+    for (let i = 0; i < tiles.length; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        if (tiles[i] > tiles[j]) {
+          inversions++;
+        }
+      }
+    }
+
+    // 3. Находим строку пустой клетки снизу (emptyRowFromBottom)
+    const emptyIndex = board.indexOf(0);
+    const emptyRowFromTop = Math.floor(emptyIndex / 4);      // 0..3 сверху
+    const emptyRowFromBottom = 4 - emptyRowFromTop;         // 1..4 снизу
+
+    // 4. Для доски 4×4: решаема ⇔ (inversions + emptyRowFromBottom) — нечётно
+    return (inversions + emptyRowFromBottom) % 2 === 1;
+  };
+
+  // Функция для преобразования состояния droppables в массив board для проверки решаемости
+  const getBoardState = (): number[] => {
+    const board: number[] = [];
+    const droppableKeys = Object.keys(droppables).sort((a, b) => {
+      // Сортируем по номеру: droppable1, droppable2, ..., droppable16
+      const numA = Number.parseInt(a.replace('droppable', ''), 10);
+      const numB = Number.parseInt(b.replace('droppable', ''), 10);
+      return numA - numB;
+    });
+
+    droppableKeys.forEach(droppableId => {
+      const droppable = droppables[droppableId];
+      if (droppable.items.length > 0) {
+        // Извлекаем номер из id элемента (draggable1 -> 1, draggable2 -> 2, и т.д.)
+        const itemId = droppable.items[0];
+        const num = Number.parseInt(itemId.replace('draggable', ''), 10);
+        board.push(num);
+      } else {
+        // Пустая ячейка
+        board.push(0);
+      }
+    });
+
+    return board;
+  };
+
+  // Проверка решаемости комбинации
+  useEffect(() => {
+    try {
+      // Удаляем предыдущие постоянные уведомления
+      const notifications = document.getElementById('notifications');
+      if (notifications) {
+        const existingPersistent = notifications.querySelectorAll('.persistent-notification');
+        existingPersistent.forEach(el => el.remove());
+      }
+
+      const board = getBoardState();
+      // Проверяем, что все элементы на доске (15 элементов + 1 пустая)
+      const filledCells = board.filter(x => x !== 0).length;
+      if (filledCells === 15) {
+        const solvable = isSolvable(board);
+        if (solvable) {
+          Msg.success('Комбинация решаема');
+        } else {
+          Msg.warn('Комбинация не решаема', 'red', true);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке решаемости:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [droppables]);
 
   // Функция для перемешивания элементов
   const shuffleItems = () => {
@@ -92,85 +195,75 @@ function DndGame15() {
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
 
   return (
-    <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: '25vh' }}>
-      <DndContext onDragEnd={handleDragEnd}>
-        <div style={{ flex: 1 }}>
-          <div style={{
-            minHeight: '500px',
-            border: '2px solid #333',
-            borderRadius: '8px',
-            position: 'relative',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr 1fr',
-            gridTemplateRows: '1fr 1fr 1fr 1fr',
-            gap: '2px',
-            backgroundColor: '#333',
-            padding: '2px'
-          }}>
+    <>
+      <Msg.Notifications single={true} />
+      <div className={`${styles.container} ${isMobile ? styles.containerMobile : ''}`}>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className={`${styles.gameContainer} ${isMobile ? styles.gameContainerMobile : ''}`}>
+            <div className={`${styles.gameBoard} ${isMobile ? styles.gameBoardMobile : ''}`}>
 
-            {Object.keys(droppables).map(droppableId => (
-              <Droppable key={droppableId} id={droppableId} noOpacity={true}>
-                <div style={{
-                  minHeight: '100%',
-                  padding: '8px',
-                  backgroundColor: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: '5px'
-                }}>
-                  {droppables[droppableId].items.length > 0
-                    ? (
-                      droppables[droppableId].items.map(itemId => (
-                        <Draggable key={itemId} id={itemId}>
-                          {draggableItems.find(i => i.id === itemId)?.name}
-                        </Draggable>
-                      ))
-                    )
-                    : (
-                      <p style={{ color: '#999', margin: 0, fontSize: '12px' }}>{droppables[droppableId].name}</p>
-                    )
-                  }
-                </div>
-              </Droppable>
-            ))}
+              {Object.keys(droppables).map(droppableId => (
+                <Droppable key={droppableId} id={droppableId} noOpacity={true}>
+                  <div className={`${styles.cell} ${isMobile ? styles.cellMobile : ''}`}>
+                    {droppables[droppableId].items.length > 0
+                      ? (
+                        droppables[droppableId].items.map(itemId => (
+                          <Draggable key={itemId} id={itemId}>
+                            {draggableItems.find(i => i.id === itemId)?.name}
+                          </Draggable>
+                        ))
+                      )
+                      : (
+                        <p className={styles.emptyCellText}>{droppables[droppableId].name}</p>
+                      )
+                    }
+                  </div>
+                </Droppable>
+              ))}
 
+            </div>
           </div>
-        </div>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          width: '200px'
-        }}>
-          <Button
-            variant="contained"
-            onClick={shuffleItems}
-            sx={{ mb: 2, backgroundColor: 'red', '&:hover': { backgroundColor: '#d32f2f' } }}
-          >
-            Перемешать
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            sx={{ mb: 2, backgroundColor: 'green', '&:hover': { backgroundColor: '#2e7d32' } }}
-          >
-            Сохранить
-          </Button>
-          {draggableItems.map(item => {
-            if (!droppedItems.has(item.id)) {
-              return (
-                <Draggable key={item.id} id={item.id}>
-                  {item.name}
-                </Draggable>
-              );
-            }
-            return null;
-          })}
-        </div>
-      </DndContext>
-    </div>
+          <div className={`${styles.buttonsContainer} ${isMobile ? styles.buttonsContainerMobile : ''}`}>
+            <div className={`${styles.actionsContainer} ${isMobile ? styles.actionsContainerMobile : ''}`}>
+              <Button
+                variant="contained"
+                onClick={shuffleItems}
+                sx={{
+                  mb: isMobile ? 0 : 2,
+                  backgroundColor: 'red',
+                  '&:hover': { backgroundColor: '#d32f2f' },
+                  flex: isMobile ? 1 : 'none'
+                }}
+              >
+                Перемешать
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSave}
+                sx={{
+                  mb: isMobile ? 0 : 2,
+                  backgroundColor: 'green',
+                  '&:hover': { backgroundColor: '#2e7d32' },
+                  flex: isMobile ? 1 : 'none'
+                }}
+              >
+                Сохранить
+              </Button>
+            </div>
+            {!isMobile && draggableItems.map(item => {
+              if (!droppedItems.has(item.id)) {
+                return (
+                  <Draggable key={item.id} id={item.id}>
+                    {item.name}
+                  </Draggable>
+                );
+              }
+              return null;
+            })}
+          </div>
+        </DndContext>
+      </div>
+    </>
   );
 }
 

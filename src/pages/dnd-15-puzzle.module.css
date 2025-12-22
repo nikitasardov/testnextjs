@@ -1,0 +1,116 @@
+/* Основной контейнер */
+.container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    height: 60vh;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.containerMobile {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    overflow: hidden;
+}
+
+/* Контейнер игрового поля */
+.gameContainer {
+    flex: 1;
+    width: auto;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    justify-content: flex-start;
+}
+
+.gameContainerMobile {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: 50vh;
+}
+
+/* Игровое поле */
+.gameBoard {
+    width: 600px;
+    aspect-ratio: 1 / 1;
+    max-width: 600px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    gap: 2px;
+    background-color: #333;
+    padding: 2px;
+    flex-shrink: 1;
+    margin: 0;
+}
+
+.gameBoardMobile {
+    width: 100%;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 160px);
+    margin: 0 auto;
+}
+
+/* Ячейка игрового поля */
+.cell {
+    min-height: 100%;
+    padding: 8px;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cellMobile {
+    padding: 4px;
+}
+
+/* Текст пустой ячейки */
+.emptyCellText {
+    color: #999;
+    margin: 0;
+    font-size: 12px;
+}
+
+/* Контейнер кнопок */
+.buttonsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 200px;
+    order: 1;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    flex-grow: 0;
+    min-height: auto;
+}
+
+.buttonsContainerMobile {
+    width: 100%;
+    order: 2;
+    justify-content: flex-end;
+}
+
+/* Контейнер для кнопок действий */
+.actionsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: auto;
+    flex-shrink: 0;
+}
+
+.actionsContainerMobile {
+    flex-direction: row;
+    width: 100%;
+}
