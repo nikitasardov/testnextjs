@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 // компоненты Material UI для разметки
 import { Box, AppBar, Toolbar, Container, Typography, IconButton } from '@mui/material';
 import AuthButton from '@/components/AuthButton';
+import Link from "next/link";
 
 // утилиты для работы с cookies
 import { getCookie, setCookie } from '@/utils/cookies';
@@ -94,7 +95,7 @@ function AppContent({ Component, pageProps }: AppProps) {
             {/* variant="h6" - заголовок 6 уровня */}
             {/* component="div" - рендерится как div (не h6) */}
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              My next.js app
+              <Link href="/">My next.js app</Link>
             </Typography>
 
             {/* Кнопка-переключатель темы */}
