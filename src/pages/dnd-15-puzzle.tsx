@@ -106,7 +106,7 @@ function DndGame15() {
       if (filledCells === 15) {
         const solvable = isSolvable(board);
         if (solvable) {
-          Msg.success('Комбинация решаема');
+          Msg.success('Решение есть!');
         } else {
           Msg.warn('Комбинация не решаема', 'red', true);
         }

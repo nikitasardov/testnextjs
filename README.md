@@ -34,13 +34,67 @@ cp .env.example .env
 ```
 NEXT_PUBLIC_SUPABASE_URL=ваш-url-проекта
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ваш-ключ
+SUPABASE_SERVICE_ROLE_KEY=ваш-service-role-ключ
 ```
 
 **Как получить эти значения:**
-1. Зайдите на [supabase.com](https://supabase.com)
-2. Создайте новый проект
-3. Перейдите в Settings → API
-4. Скопируйте "Project URL" и "anon public" ключ
+
+### Шаг 1: Вход в Supabase Dashboard
+1. Откройте браузер и перейдите на [https://app.supabase.com](https://app.supabase.com)
+2. Войдите в свою учетную запись Supabase (или зарегистрируйтесь, если у вас еще нет аккаунта)
+
+### Шаг 2: Выбор проекта
+1. На главной странице (Dashboard) вы увидите список ваших проектов
+2. Кликните на проект, для которого хотите получить ключи API
+
+### Шаг 3: Переход в настройки API
+1. В левом боковом меню найдите иконку **"Settings"** (⚙️ Настройки) внизу списка
+2. Кликните на **"Settings"**, откроется выпадающее меню
+3. В выпадающем меню выберите пункт **"API"**
+
+### Шаг 4: Получение Project URL
+1. На странице API Settings в самом верху вы увидите секцию **"Project URL"**
+2. Скопируйте значение из поля (обычно выглядит как `https://xxxxx.supabase.co`)
+3. Вставьте его в `.env` файл как значение `NEXT_PUBLIC_SUPABASE_URL`
+
+### Шаг 5: Получение anon public ключа
+1. Прокрутите страницу вниз до секции **"Project API keys"** (Ключи API проекта)
+2. Вы увидите несколько ключей, первый из них - это **"anon"** или **"anon public"** ключ
+3. Рядом с ключом есть кнопка с иконкой копирования (📋) или кнопка **"Reveal"** (Показать), если ключ скрыт
+4. Кликните на кнопку, чтобы показать ключ, затем скопируйте его
+5. Вставьте его в `.env` файл как значение `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Шаг 6: Получение service_role ключа
+1. В той же секции **"Project API keys"** прокрутите немного ниже
+2. Найдите ключ с названием **"service_role"** (он обычно находится под ключом "anon")
+3. Рядом с ним также есть кнопка **"Reveal"** (Показать) - кликните на неё
+4. ⚠️ **Внимание:** Supabase может показать предупреждение о том, что этот ключ имеет расширенные привилегии - это нормально
+5. Скопируйте ключ `service_role` (он длиннее, чем anon ключ)
+6. Вставьте его в `.env` файл как значение `SUPABASE_SERVICE_ROLE_KEY`
+
+### Визуальная структура страницы API Settings:
+```
+┌─────────────────────────────────────┐
+│ Project URL                         │
+│ https://xxxxx.supabase.co           │ ← Скопировать
+├─────────────────────────────────────┤
+│ ... другие настройки ...            │
+├─────────────────────────────────────┤
+│ Project API keys                    │
+│                                     │
+│ anon public                         │
+│ eyJhbGc... (скрыт) [Reveal]        │ ← Скопировать
+│                                     │
+│ service_role                        │
+│ eyJhbGc... (скрыт) [Reveal]        │ ← Скопировать
+└─────────────────────────────────────┘
+```
+
+**ВАЖНО:** 
+- `SUPABASE_SERVICE_ROLE_KEY` используется только на сервере для доступа к Admin API
+- Никогда не используйте этот ключ в клиентском коде (в браузере)
+- Этот ключ обходит все политики безопасности Row Level Security (RLS)
+- Не коммитьте `.env` файл в git - он содержит секретные ключи
 
 ### 3. Запуск в режиме разработки
 
@@ -102,6 +156,7 @@ Vercel - это платформа от создателей Next.js, самая
 5. В разделе "Environment Variables" добавьте:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (для работы страницы пользователей)
 6. Нажмите "Deploy"
 
 **Готово!** Через несколько минут приложение будет доступно по адресу вида: `your-app.vercel.app`
@@ -202,7 +257,7 @@ sudo certbot --nginx -d your-domain.com
 
 ```dockerfile
 # Этап сборки
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json yarn.lock ./
 RUN yarn install --frozen-lockfile
@@ -210,7 +265,7 @@ COPY . .
 RUN yarn build
 
 # Этап продакшена
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV production
 COPY --from=builder /app/.next ./.next
@@ -232,6 +287,7 @@ docker build -t nextjs-app .
 docker run -p 3000:3000 \
   -e NEXT_PUBLIC_SUPABASE_URL=your-url \
   -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key \
+  -e SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
   nextjs-app
 ```
 
