@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
@@ -16,61 +16,114 @@ export default function Home() {
     <div
       className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
     >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.tsx file.
+      <main className="flex min-h-screen w-full max-w-4xl flex-col items-center justify-center py-16 px-8 bg-white dark:bg-black">
+        <div className="flex flex-col items-center gap-8 text-center w-full">
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-black dark:text-zinc-50">
+            Добро пожаловать в приложение
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Веб-приложение на Next.js с авторизацией, drag-and-drop функциональностью
+            и управлением данными.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-8">
+            <Link
+              href="/dnd-example"
+              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
+                Drag & Drop Игра
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+                Интерактивная игра с перетаскиванием элементов. Распределяйте элементы по областям,
+                следите за ограничениями и получайте уведомления о действиях.
+              </p>
+              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
+                Требуется авторизация →
+              </span>
+            </Link>
+
+            <Link
+              href="/dnd-15-puzzle"
+              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
+                15-puzzle (Пятнашки)
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+                Расширенная версия игры с сеткой 4x4 и 16 ячейками. Элементы автоматически
+                распределяются случайным образом при загрузке страницы.
+              </p>
+              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
+                Требуется авторизация →
+              </span>
+            </Link>
+
+            <Link
+              href="/users"
+              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
+                Пользователи
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+                Просмотр списка пользователей системы. Управление пользовательскими данными
+                и профилями.
+              </p>
+              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
+                Требуется авторизация →
+              </span>
+            </Link>
+
+            <Link
+              href="/product/1"
+              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
+                Продукты
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+                Просмотр информации о продуктах. Динамические страницы с данными из базы данных
+                Supabase.
+              </p>
+              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
+                Перейти →
+              </span>
+            </Link>
+          </div>
+
+          <div className="mt-8 p-6 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full">
+            <h3 className="text-lg font-semibold mb-4 text-black dark:text-zinc-50">
+              Возможности приложения
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left text-sm text-zinc-600 dark:text-zinc-400">
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Авторизация через Supabase</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Защита страниц с помощью HOC</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Drag & Drop функциональность</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Система уведомлений</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Адаптивный дизайн</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Темная тема</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </main>
     </div>

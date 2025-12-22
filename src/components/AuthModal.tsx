@@ -31,8 +31,9 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     const [email, setEmail] = useState('');      // Email пользователя
     const [password, setPassword] = useState(''); // Пароль пользователя
     const [loading, setLoading] = useState(false); // Флаг загрузки во время запроса
-    const [error, setErrorMsg] = useState('');       // Текст ошибки для отображения
-    const [success, setSuccessMsg] = useState('');   // Текст успешного сообщения
+    const [errorMsg, setErrorMsg] = useState('');       // Текст ошибки для отображения
+    const [successMsg, setSuccessMsg] = useState('');   // Текст успешного сообщения
+    const [isResetMode, setIsResetMode] = useState(false); // Режим восстановления пароля
 
     // Обработчик переключения вкладок
     // React.SyntheticEvent - тип события React (обёртка над нативным событием браузера)
@@ -42,6 +43,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
         setSuccessMsg('');        // Очищаем сообщения успеха
         setEmail('');          // Очищаем поля ввода
         setPassword('');
+        setIsResetMode(false); // Сбрасываем режим восстановления пароля
     };
 
     // Функция регистрации нового пользователя
@@ -124,7 +126,33 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
         }
     };
 
-    // Возвращаем JSX (синтаксис, похожий на HTML, но это JavaScript)
+    // Функция восстановления пароля
+    const handleResetPassword = async () => {
+        if (!email) {
+            setErrorMsg('Введите email');
+            return;
+        }
+
+        setLoading(true);
+        setErrorMsg('');
+        setSuccessMsg('');
+
+        try {
+            // Отправляем письмо для восстановления пароля
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${globalThis.location.origin}/reset-password`,
+            });
+
+            if (error) throw error;
+
+            setSuccessMsg('Письмо с инструкциями по восстановлению пароля отправлено на ваш email.');
+        } catch (err) {
+            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при отправке письма');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             {/* Dialog - модальное окно Material UI
@@ -134,36 +162,40 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 fullWidth - занимает всю доступную ширину */}
 
             <DialogTitle>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    {/* sx - пропс для стилизации (styled system от MUI)
-                        borderBottom: 1 - нижняя граница толщиной 1px
-                        borderColor: 'divider' - цвет границы как у разделителя */}
-                    <Tabs value={tab} onChange={handleTabChange}>
-                        {/* value - активная вкладка
-                            onChange - вызывается при переключении */}
-                        <Tab label="Вход" />
-                        <Tab label="Регистрация" />
-                    </Tabs>
-                </Box>
+                {isResetMode
+                    ? (
+                        <Typography variant="h6">Восстановление пароля</Typography>
+                    )
+                    : (
+                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                            {/* sx - пропс для стилизации (styled system от MUI)
+                            borderBottom: 1 - нижняя граница толщиной 1px
+                            borderColor: 'divider' - цвет границы как у разделителя */}
+                            <Tabs value={tab} onChange={handleTabChange}>
+                                {/* value - активная вкладка
+                                onChange - вызывается при переключении */}
+                                <Tab label="Вход" />
+                                <Tab label="Регистрация" />
+                            </Tabs>
+                        </Box>
+                    )}
             </DialogTitle>
 
             <DialogContent>
                 <Box sx={{ pt: 3 }}>
                     {/* pt: 3 - padding-top: 3 единицы (в MUI 1 единица = 8px) */}
 
-                    {/* Условный рендеринг: {условие && JSX}
-                        Если error не пустая строка, отобразится Alert */}
-                    {error && (
+                    {errorMsg && (
                         <Alert severity="error" sx={{ mb: 2 }}>
                             {/* severity - тип алерта (error, warning, info, success)
                                 mb: 2 - margin-bottom */}
-                            {error}
+                            {errorMsg}
                         </Alert>
                     )}
 
-                    {success && (
+                    {successMsg && (
                         <Alert severity="success" sx={{ mb: 2 }}>
-                            {success}
+                            {successMsg }
                         </Alert>
                     )}
 
@@ -181,22 +213,43 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                         sx={{ mb: 2 }}             // Стили: margin-bottom
                     />
 
-                    {/* Поле ввода пароля */}
-                    <TextField
-                        margin="dense"
-                        label="Пароль"
-                        type="password"             // Текст скрывается звёздочками
-                        fullWidth
-                        variant="outlined"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        sx={{ mb: 2 }}
-                    />
+                    {/* Поле ввода пароля - показываем только если не режим восстановления */}
+                    {!isResetMode && (
+                        <TextField
+                            margin="dense"
+                            label="Пароль"
+                            type="password"             // Текст скрывается звёздочками
+                            fullWidth
+                            variant="outlined"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading}
+                            sx={{ mb: 2 }}
+                        />
+                    )}
+
+                    {/* Кнопка "Забыли пароль?" на вкладке входа */}
+                    {tab === 0 && !isResetMode && (
+                        <Box sx={{ mb: 2, textAlign: 'right' }}>
+                            <Button
+                                size="small"
+                                onClick={() => {
+                                    setIsResetMode(true);
+                                    setErrorMsg('');
+                                    setSuccessMsg('');
+                                    setPassword('');
+                                }}
+                                disabled={loading}
+                                sx={{ textTransform: 'none' }}
+                            >
+                                Забыли пароль?
+                            </Button>
+                        </Box>
+                    )}
 
                     {/* Условное отображение подсказки в зависимости от вкладки */}
                     {/* Если активна вкладка 0 (вход) */}
-                    {tab === 0 && (
+                    {tab === 0 && !isResetMode && (
                         <Typography variant="caption" color="text.secondary">
                             {/* variant - вариант текста (caption - самый мелкий)
                                 color - цвет текста */}
@@ -209,6 +262,12 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                             Создайте новый аккаунт
                         </Typography>
                     )}
+
+                    {isResetMode && (
+                        <Typography variant="caption" color="text.secondary">
+                            Введите email, на который будет отправлена ссылка для восстановления пароля
+                        </Typography>
+                    )}
                 </Box>
             </DialogContent>
 
@@ -217,26 +276,47 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 {/* px: 3 - padding горизонтальный
                     pb: 3 - padding bottom */}
 
-                {/* Кнопка отмены */}
-                <Button onClick={onClose} disabled={loading}>
-                    Отмена
-                </Button>
+                {/* Кнопка отмены или назад */}
+                {isResetMode ? (
+                    <Button
+                        onClick={() => {
+                            setIsResetMode(false);
+                            setErrorMsg('');
+                            setSuccessMsg('');
+                        }}
+                        disabled={loading}
+                    >
+                        Назад
+                    </Button>
+                ) : (
+                    <Button onClick={onClose} disabled={loading}>
+                        Отмена
+                    </Button>
+                )}
 
-                {/* Основная кнопка (вход или регистрация) */}
+                {/* Основная кнопка (вход, регистрация или восстановление пароля) */}
                 <Button
-                    // Тернарный оператор: условие ? значение1 : значение2
-                    // Если tab === 0, вызываем handleSignIn, иначе handleSignUp
-                    onClick={tab === 0 ? handleSignIn : handleSignUp}
                     variant="contained"  // Вариант кнопки (заполненная)
                     disabled={loading}   // Отключаем во время загрузки
                     // startIcon - иконка в начале кнопки
                     // Условный рендеринг: показываем индикатор загрузки
                     startIcon={loading ? <CircularProgress size={20} /> : null}
+                    onClick={() => {
+                        if (isResetMode) {
+                            handleResetPassword();
+                        } else if (tab === 0) {
+                            handleSignIn();
+                        } else {
+                            handleSignUp();
+                        }
+                    }}
                 >
                     {/* IIFE (Immediately Invoked Function Expression) - функция, вызываемая сразу
                         Используется для условного возврата текста */}
                     {(() => {
                         if (loading) return 'Загрузка...';
+                        // Если режим восстановления - показываем "Отправить"
+                        if (isResetMode) return 'Отправить';
                         // Тернарный оператор для выбора текста кнопки
                         return tab === 0 ? 'Войти' : 'Зарегистрироваться';
                     })()}

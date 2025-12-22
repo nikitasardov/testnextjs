@@ -82,6 +82,7 @@ export default function AuthButton() {
                         alignItems: 'center',
                         gap: 1,
                         textTransform: 'none',    // Убираем верхний регистр (по умолчанию кнопки делают uppercase)
+                        color: 'inherit',
                     }}
                 >
                     {/* Avatar - аватар пользователя
@@ -95,7 +96,7 @@ export default function AuthButton() {
 
                     {/* Typography - компонент текста
                         variant="body2" - вариант текста (средний размер) */}
-                    <Typography variant="body2">{user.email}</Typography>
+                    <Typography variant="body2" sx={{ color: 'inherit' }}>{user.email}</Typography>
                 </Button>
             </Box>
 

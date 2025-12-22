@@ -2,90 +2,107 @@
 import { useState } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { Draggable } from '../components/Draggable';
-import { Droppable } from '../components/Droppable';
-import { Notifications, addNotification, addWarning } from '../components/Notifications';
+import { Droppable, isDroppable } from '../components/Droppable';
+import * as Msg from '../components/Notifications';
+import { generateDroppables, generateDraggables } from '../utils/dnd-helpers';
+import { withAuth } from '@/components/withAuth';
 
-export default function DndExample() {
-  const [quadrants, setQuadrants] = useState<{ [key: string]: { name: string, items: string[] } }>({
-    quadrant1: { name: 'Область 1', items: [] },
-    quadrant2: { name: 'Область 2', items: [] },
-    quadrant3: { name: 'Область 3', items: [] },
-    quadrant4: { name: 'Область 4', items: [] },
-  });
-
-  const draggableItems = [
-    { id: 'el1', name: 'Элемент 1' },
-    { id: 'el2', name: 'Элемент 2' },
-    { id: 'el3', name: 'Элемент 3' },
-    { id: 'el4', name: 'Элемент 4' },
-    { id: 'el5', name: 'Элемент 5' },
-    { id: 'el6', name: 'Элемент 6' },
-    { id: 'el7', name: 'Элемент 7' },
-    { id: 'el8', name: 'Элемент 8' },
-    { id: 'el9', name: 'Элемент 9' },
-  ];
+function DndExample() {
+  const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
+    generateDroppables(4)
+  );
+  const maxItemsPerDroppable = 3;
+  const draggableItems = generateDraggables(13);
 
   function handleDragStart({ active }: DragStartEvent) {
-    addNotification(`Вы потащили элемент ${active.id}`);
+    const activeDraggable = draggableItems.find(item => item.id === active.id);
+
+    Msg.notify(`Вы потащили элемент <b>${activeDraggable?.name}</b>`);
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {
-    addNotification(`Элемент ${active.id} находится над ${over?.id}`);
+    const activeDraggable = draggableItems.find(item => item.id === active.id);
+    const overDroppable = droppables[over?.id as string];
+    const overDroppableKey = over?.id as string;
+    const itemId = active.id as string;
+    const currentDroppableKey = Object.keys(droppables).find(
+      key => droppables[key].items.includes(itemId)
+    );
+    const isParent = currentDroppableKey == overDroppableKey;
+
+    if (isDroppable(overDroppableKey)) {
+      if (!isParent && droppables[overDroppableKey].items.length < maxItemsPerDroppable) {
+
+        Msg.notify(`<b>${activeDraggable?.name}</b> находится над <b>${overDroppable?.name}</b>`);
+      } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
+
+        Msg.attention(`В <b>${overDroppable?.name}</b> больше нет места.`);
+      }
+    }
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     const itemId = active.id as string;
-    const quadrantId = over?.id as string;
+    const overDroppableKey = over?.id as string;
+    const overDroppable = droppables[overDroppableKey];
 
-    // Находим, в каком квадранте сейчас находится этот элемент (если есть)
-    const currentQuadrant = Object.keys(quadrants).find(
-      key => quadrants[key].items.includes(itemId)
+    // Находим, в каком droppable сейчас находится этот элемент (если есть)
+    const currentDroppableKey = Object.keys(droppables).find(
+      key => droppables[key].items.includes(itemId)
     );
 
-    // Проверяем, является ли целевая область квадрантом
-    if (quadrantId?.startsWith('quadrant')) {
-      // Проверяем, что в квадранте меньше 2 элементов
-      if (currentQuadrant !== quadrantId && quadrants[quadrantId].items.length < 2) {
-        addNotification(`Элемент ${active.id} перетащен в ${over?.id}`);
-        setQuadrants(prev => {
+    const activeDraggable = draggableItems.find(item => item.id === active.id);
+    const isParent = currentDroppableKey == overDroppableKey;
+
+    // Проверяем, является ли целевая область droppable
+    if (isDroppable(overDroppableKey)) {
+      // Проверяем, что в droppable есть место для элемента
+      if (!isParent && droppables[overDroppableKey].items.length < maxItemsPerDroppable) {
+        setDroppables(prev => {
           const updates = { ...prev };
-          // Удаляем элемент из текущего квадранта (если есть)
-          if (currentQuadrant) {
-            updates[currentQuadrant] = {
-              ...prev[currentQuadrant],
-              items: prev[currentQuadrant].items.filter(id => id !== itemId)
+          // Удаляем элемент из текущего droppable (если есть)
+          if (currentDroppableKey) {
+            updates[currentDroppableKey] = {
+              ...prev[currentDroppableKey],
+              items: prev[currentDroppableKey].items.filter(id => id !== itemId)
             };
           }
-          // Добавляем элемент в новый квадрант (если его там еще нет)
-          if (!updates[quadrantId].items.includes(itemId)) {
-            updates[quadrantId].items = [...updates[quadrantId].items, itemId];
+          // Добавляем элемент в новый droppable (если его там еще нет)
+          if (!updates[overDroppableKey].items.includes(itemId)) {
+            updates[overDroppableKey].items = [...updates[overDroppableKey].items, itemId];
           }
           return updates;
         });
-      } else if (currentQuadrant !== quadrantId && quadrants[quadrantId].items.length >= 2) {
-        addWarning(`В квадранте ${quadrantId} уже 2 элемента. Перетащите элемент в другой квадрант.`);
+
+        Msg.success(`<b>${activeDraggable?.name}</b> перемещен в <b>${overDroppable.name}</b>`);
+      } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
+
+        Msg.warn(`В <b>${overDroppable.name}</b> нет свободных мест. Перетащите элемент в другую область.`);
       }
-    } else if (currentQuadrant) {
-      // Если элемент перетащен не в квадрант, удаляем его из текущего квадранта
-      setQuadrants(prev => ({
+    } else if (currentDroppableKey) {
+      // Если элемент перетащен не в droppable, удаляем его из текущего droppable
+      setDroppables(prev => ({
         ...prev,
-        [currentQuadrant]: {
-          ...prev[currentQuadrant],
-          items: prev[currentQuadrant].items.filter(id => id !== itemId)
+        [currentDroppableKey]: {
+          ...prev[currentDroppableKey],
+          items: prev[currentDroppableKey].items.filter(id => id !== itemId)
         },
       }));
-    } else if (!currentQuadrant) {
-      // Если элемент перетащен не в квадрант, удаляем его из текущего квадранта
-      addNotification(`Вы передумали перетаскивать элемент ${active.id}`);
-    }
-  } 
 
-  const droppedItems = new Set(Object.values(quadrants).flatMap(quadrant => quadrant.items));
+      Msg.success(`Вы убрали <b>${activeDraggable?.name}</b> из <b>${droppables[currentDroppableKey].name}</b>`);
+    } else if (!currentDroppableKey) {
+      // Если элемент перетащен не в droppable, удаляем его из текущего droppable
+
+      Msg.notify(`Вы передумали перетаскивать элемент <b>${activeDraggable?.name}</b>`);
+    }
+  }
+
+  const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: '50vh' }}>
-        <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart} onDragOver={handleDragOver}>
+      <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart} onDragOver={handleDragOver}>
+        <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: '50vh' }}>
           <div style={{ flex: 1 }}>
             <div style={{
               minHeight: '500px',
@@ -99,53 +116,46 @@ export default function DndExample() {
               backgroundColor: '#333',
               padding: '2px'
             }}>
-              {/* Вертикальная ось */}
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                top: 0,
-                bottom: 0,
-                width: '2px',
-                backgroundColor: '#333',
-                transform: 'translateX(-50%)',
-                zIndex: 1
-              }} />
-              {/* Горизонтальная ось */}
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: 0,
-                right: 0,
-                height: '2px',
-                backgroundColor: '#333',
-                transform: 'translateY(-50%)',
-                zIndex: 1
-              }} />
 
-            {Object.keys(quadrants).map(quadrantId => (
-              <Droppable key={quadrantId} id={quadrantId}>
-                <div style={{
-                  minHeight: '100%',
-                  padding: '20px',
-                  backgroundColor: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  {quadrants[quadrantId].items.length > 0 ? (
-                    quadrants[quadrantId].items.map(itemId => (
-                      <Draggable key={itemId} id={itemId}>
-                        {draggableItems.find(i => i.id === itemId)?.name}
-                      </Draggable>
-                    ))
-                  ) : (
-                    <p style={{ color: '#999', margin: 0 }}>{quadrants[quadrantId].name}</p>
-                  )}
-                </div>
-              </Droppable>
-            ))}
+              {Object.keys(droppables).map(droppableId => (
+                <Droppable key={droppableId} id={droppableId}>
+                  <div style={{
+                    minHeight: '100%',
+                    padding: '20px',
+                    backgroundColor: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    {droppables[droppableId].items.length > 0
+                      ? (
+                        droppables[droppableId].items.map(itemId => (
+                          <Draggable key={itemId} id={itemId}>
+                            {draggableItems.find(i => i.id === itemId)?.name}
+                          </Draggable>
+                        ))
+                      )
+                      : (
+                        <p style={{ color: '#999', margin: 0 }}>{droppables[droppableId].name}</p>
+                      )
+                    }
+                  </div>
+                </Droppable>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '20px' }}>
+              {draggableItems.map(item => {
+                if (!droppedItems.has(item.id)) {
+                  return (
+                    <Draggable key={item.id} id={item.id}>
+                      {item.name}
+                    </Draggable>
+                  );
+                }
+                return null;
+              })}
             </div>
           </div>
           <div style={{
@@ -154,20 +164,13 @@ export default function DndExample() {
             gap: '10px',
             width: '200px'
           }}>
-            {draggableItems.map(item => {
-              if (!droppedItems.has(item.id)) {
-                return (
-                  <Draggable key={item.id} id={item.id}>
-                    {item.name}
-                  </Draggable>
-                );
-              }
-              return null;
-            })}
+            <Msg.Notifications />
           </div>
-        </DndContext>
-      </div>
-      <Notifications />
+        </div>
+      </DndContext>
     </div>
   );
 }
+
+// Экспортируем обернутый компонент
+export default withAuth(DndExample);

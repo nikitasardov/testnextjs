@@ -19,6 +19,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Box, AppBar, Toolbar, Container, Typography, IconButton } from '@mui/material';
 import AuthButton from '@/components/AuthButton';
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 // утилиты для работы с cookies
 import { getCookie, setCookie } from '@/utils/cookies';
@@ -27,6 +28,7 @@ import { getCookie, setCookie } from '@/utils/cookies';
 function AppContent({ Component, pageProps }: AppProps) {
   // Получаем информацию об авторизации из контекста
   const { user, loading } = useAuth();
+  const router = useRouter();
 
   // Инициализируем состояние темы дефолтным значением 'light'
   // Тема из куки будет применена только после авторизации
@@ -88,14 +90,20 @@ function AppContent({ Component, pageProps }: AppProps) {
       {/* minHeight: '100vh' - минимальная высота 100% высоты экрана (viewport height) */}
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {/* AppBar - верхняя панель приложения (навигационная панель) */}
-        <AppBar position="static">
+        <AppBar position="sticky">
           {/* Toolbar - контейнер для элементов панели */}
           <Toolbar>
             {/* Typography - компонент текста */}
             {/* variant="h6" - заголовок 6 уровня */}
             {/* component="div" - рендерится как div (не h6) */}
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              <Link href="/">My next.js app</Link>
+              {router.pathname === "/"
+                ? (
+                  <>My next.js app</>
+                )
+                : (
+                  <Link href="/">На главную</Link>
+                )}
             </Typography>
 
             {/* Кнопка-переключатель темы */}
