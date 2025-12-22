@@ -1,6 +1,6 @@
-// Импортируем хук useState для управления состоянием компонента
+// хук useState для управления состоянием компонента
 import { useState } from 'react';
-// Импортируем компоненты Material UI для создания модального окна
+// компоненты Material UI для создания модального окна
 import {
     Dialog,        // Модальное окно (диалоговое окно)
     DialogTitle,   // Заголовок модального окна
@@ -15,7 +15,7 @@ import {
     Alert,         // Компонент для уведомлений
     CircularProgress // Индикатор загрузки (кружок)
 } from '@mui/material';
-// Импортируем настроенный клиент Supabase
+// клиент Supabase
 import { supabase } from '@/utils/supabase';
 
 // Интерфейс описывает структуру props (свойств) компонента
@@ -25,23 +25,21 @@ interface AuthModalProps {
     readonly onClose: () => void;  // Функция закрытия модального окна (не возвращает значение)
 }
 
-// Функциональный компонент (в React 15 были только классовые компоненты)
-// В новых версиях React функциональные компоненты - основной способ
 export default function AuthModal({ open, onClose }: AuthModalProps) {
     // Создаём состояния компонента с помощью хука useState
     const [tab, setTab] = useState(0);           // Активная вкладка (0 - вход, 1 - регистрация)
     const [email, setEmail] = useState('');      // Email пользователя
     const [password, setPassword] = useState(''); // Пароль пользователя
     const [loading, setLoading] = useState(false); // Флаг загрузки во время запроса
-    const [error, setError] = useState('');       // Текст ошибки для отображения
-    const [success, setSuccess] = useState('');   // Текст успешного сообщения
+    const [error, setErrorMsg] = useState('');       // Текст ошибки для отображения
+    const [success, setSuccessMsg] = useState('');   // Текст успешного сообщения
 
     // Обработчик переключения вкладок
     // React.SyntheticEvent - тип события React (обёртка над нативным событием браузера)
     const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
         setTab(newValue);      // Устанавливаем новую активную вкладку
-        setError('');          // Очищаем ошибки
-        setSuccess('');        // Очищаем сообщения успеха
+        setErrorMsg('');          // Очищаем ошибки
+        setSuccessMsg('');        // Очищаем сообщения успеха
         setEmail('');          // Очищаем поля ввода
         setPassword('');
     };
@@ -51,14 +49,14 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     const handleSignUp = async () => {
         // Валидация: проверяем, что поля заполнены
         if (!email || !password) {
-            setError('Заполните все поля');
+            setErrorMsg('Заполните все поля');
             return;  // Выходим из функции, если не заполнено
         }
 
         // Начинаем процесс загрузки
         setLoading(true);
-        setError('');
-        setSuccess('');
+        setErrorMsg('');
+        setSuccessMsg('');
 
         // try-catch-finally - обработка ошибок
         // try - код, который может выбросить ошибку
@@ -77,12 +75,12 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
             // Если регистрация успешна и есть данные пользователя
             if (data.user) {
-                setSuccess('Регистрация успешна! Проверьте почту для подтверждения.');
+                setSuccessMsg('Регистрация успешна! Проверьте почту для подтверждения.');
             }
         } catch (err) {
             // Обработка ошибки
             // err instanceof Error - проверка, является ли err объектом Error
-            setError(err instanceof Error ? err.message : 'Ошибка при регистрации');
+            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при регистрации');
         } finally {
             // Независимо от результата, отключаем загрузку
             setLoading(false);
@@ -92,12 +90,12 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     // Функция входа в систему (аналогична регистрации)
     const handleSignIn = async () => {
         if (!email || !password) {
-            setError('Заполните все поля');
+            setErrorMsg('Заполните все поля');
             return;
         }
 
         setLoading(true);
-        setError('');
+        setErrorMsg('');
 
         try {
             // Используем signInWithPassword вместо signUp
@@ -109,18 +107,18 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             if (error) throw error;
 
             if (data.user) {
-                setSuccess('Вход выполнен успешно!');
+                setSuccessMsg('Вход выполнен успешно!');
                 // setTimeout - устанавливаем задержку перед выполнением функции
                 // Используем для того, чтобы пользователь увидел сообщение об успехе
                 setTimeout(() => {
                     onClose();        // Закрываем модальное окно
                     setEmail('');     // Очищаем поля
                     setPassword('');
-                    setSuccess('');
+                    setSuccessMsg('');
                 }, 1000);  // 1000 миллисекунд = 1 секунда
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Ошибка при входе');
+            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при входе');
         } finally {
             setLoading(false);
         }
