@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Button, useMediaQuery, useTheme } from '@mui/material';
-import { Draggable } from '../components/Draggable';
-import { Droppable, isDroppable } from '../components/Droppable';
-import { generateDroppables, generateDraggables, shuffleArray } from '../utils/dnd-helpers';
-import * as Msg from '../components/Notifications';
+import { Draggable } from '../../components/Draggable';
+import { Droppable, isDroppable } from '../../components/Droppable';
+import { generateDroppables, generateDraggables, shuffleArray } from '../../utils/dnd-helpers';
+import * as Msg from '../../components/Notifications';
 import { withAuth } from "@/components/withAuth";
-import styles from './dnd-15-puzzle.module.css';
+import styles from './15-puzzle.module.css';
 
 function DndGame15() {
   const theme = useTheme();

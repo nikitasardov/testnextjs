@@ -11,6 +11,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Общие классы для переиспользования
+const cardBase = "flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900";
+const cardLink = `${cardBase} hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg`;
+const cardTitle = "text-xl font-semibold mb-2 text-black dark:text-zinc-50";
+const cardText = "text-zinc-600 dark:text-zinc-400 text-sm";
+const cardFooter = "mt-4 text-sm font-medium text-blue-600 dark:text-blue-400";
+const buttonLink = "px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors";
+
 export default function Home() {
   return (
     <div
@@ -28,69 +36,45 @@ export default function Home() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-8">
-            <Link
-              href="/dnd-example"
-              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
-                Drag & Drop Игра
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+            <Link href="/dnd/example" className={cardLink}>
+              <h2 className={cardTitle}>Drag & Drop Игра</h2>
+              <p className={cardText}>
                 Интерактивная игра с перетаскиванием элементов. Распределяйте элементы по областям,
                 следите за ограничениями и получайте уведомления о действиях.
               </p>
-              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
-                Требуется авторизация →
-              </span>
+              <span className={cardFooter}>Требуется авторизация →</span>
             </Link>
 
-            <Link
-              href="/dnd-15-puzzle"
-              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
-                15-puzzle (Пятнашки)
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+            <Link href="/dnd/15-puzzle" className={cardLink}>
+              <h2 className={cardTitle}>15-puzzle (Пятнашки)</h2>
+              <p className={cardText}>
                 Игра с 16 ячейками. В начале игры элементы автоматически
                 распределяются случайным образом.
               </p>
-              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
-                Требуется авторизация →
-              </span>
+              <span className={cardFooter}>Требуется авторизация →</span>
             </Link>
 
-            <Link
-              href="/users"
-              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
-                Пользователи
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+            <Link href="/users" className={cardLink}>
+              <h2 className={cardTitle}>Пользователи</h2>
+              <p className={cardText}>
                 Просмотр списка пользователей системы. Управление пользовательскими данными
                 и профилями.
               </p>
-              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
-                Требуется авторизация →
-              </span>
+              <span className={cardFooter}>Требуется авторизация →</span>
             </Link>
 
-            <Link
-              href="/product/1"
-              className="flex flex-col p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold mb-2 text-black dark:text-zinc-50">
-                Продукты
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-                Просмотр информации о продуктах. Динамические страницы с данными из базы данных
-                Supabase.
+            <div className={cardBase}>
+              <h2 className={cardTitle}>Продукты</h2>
+              <p className={`${cardText} mb-4`}>
+                Просмотр информации о продуктах. Динамические страницы с данными из Supabase.
               </p>
-              <span className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400">
-                Перейти →
-              </span>
-            </Link>
+              <div className="flex flex-wrap gap-2 mt-auto">
+                <Link href="/products" className={buttonLink}>Список товаров</Link>
+                <Link href="/products/100" className={buttonLink}>Товар #100</Link>
+                <Link href="/products/150" className={buttonLink}>Товар #150</Link>
+                <Link href="/products/testApi" className={buttonLink}>Тест API</Link>
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 p-6 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full">
@@ -109,14 +93,6 @@ export default function Home() {
               <li className="flex items-start">
                 <span className="mr-2">✓</span>
                 <span>Drag & Drop функциональность</span>
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2">✓</span>
-                <span>Система уведомлений</span>
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2">✓</span>
-                <span>Адаптивный дизайн</span>
               </li>
               <li className="flex items-start">
                 <span className="mr-2">✓</span>

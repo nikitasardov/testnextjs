@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { Draggable } from '../components/Draggable';
-import { Droppable, isDroppable } from '../components/Droppable';
-import * as Msg from '../components/Notifications';
-import { generateDroppables, generateDraggables } from '../utils/dnd-helpers';
+import { Draggable } from '../../components/Draggable';
+import { Droppable, isDroppable } from '../../components/Droppable';
+import * as Msg from '../../components/Notifications';
+import { generateDroppables, generateDraggables } from '../../utils/dnd-helpers';
 import { withAuth } from '@/components/withAuth';
-import styles from './dnd-example.module.css';
+import styles from './example.module.css';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -143,19 +143,19 @@ function DndExample() {
             </div>
           </div>
           {
-        !isMobile && (
-        <div className={styles.notificationsContainer}>
-          <Msg.Notifications />
-        </div>
-        )
-      }
+            !isMobile && (
+              <div className={styles.notificationsContainer}>
+                <Msg.Notifications />
+              </div>
+            )
+          }
         </div>
       </DndContext>
       {
         isMobile && (
-        <div className={styles.notificationsContainer}>
-          <Msg.Notifications />
-        </div>
+          <div className={styles.notificationsContainer}>
+            <Msg.Notifications />
+          </div>
         )
       }
     </div>
