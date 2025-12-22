@@ -1,0 +1,65 @@
+/* Основной контейнер */
+.container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    min-height: 50vh;
+}
+
+/* Контейнер игрового поля и элементов */
+.gameSection {
+    flex: 1;
+}
+
+/* Игровое поле - квадратное 2x2 */
+.gameBoard {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 600px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+    background-color: #333;
+    padding: 2px;
+    margin-bottom: 20px;
+}
+
+/* Ячейка игрового поля */
+.cell {
+    min-height: 100%;
+    padding: 20px;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Текст пустой ячейки */
+.emptyCellText {
+    color: #999;
+    margin: 0;
+}
+
+/* Контейнер для элементов вне ячеек */
+.itemsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px;
+}
+
+/* Контейнер для уведомлений */
+.notificationsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+    max-width: 400px;
+    width: 100%;
+}

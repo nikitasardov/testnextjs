@@ -6,6 +6,9 @@ import { Droppable, isDroppable } from '../components/Droppable';
 import * as Msg from '../components/Notifications';
 import { generateDroppables, generateDraggables } from '../utils/dnd-helpers';
 import { withAuth } from '@/components/withAuth';
+import styles from './dnd-example.module.css';
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 function DndExample() {
   const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
@@ -14,6 +17,8 @@ function DndExample() {
   const maxItemsPerDroppable = 3;
   const draggableItems = generateDraggables(13);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   function handleDragStart({ active }: DragStartEvent) {
     const activeDraggable = draggableItems.find(item => item.id === active.id);
 
@@ -102,33 +107,12 @@ function DndExample() {
   return (
     <div>
       <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart} onDragOver={handleDragOver}>
-        <div style={{ display: 'flex', gap: '20px', padding: '20px', minHeight: '50vh' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              minHeight: '500px',
-              border: '2px solid #333',
-              borderRadius: '8px',
-              position: 'relative',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gridTemplateRows: '1fr 1fr',
-              gap: '2px',
-              backgroundColor: '#333',
-              padding: '2px'
-            }}>
-
+        <div className={styles.container}>
+          <div className={styles.gameSection}>
+            <div className={styles.gameBoard}>
               {Object.keys(droppables).map(droppableId => (
                 <Droppable key={droppableId} id={droppableId}>
-                  <div style={{
-                    minHeight: '100%',
-                    padding: '20px',
-                    backgroundColor: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    gap: '10px'
-                  }}>
+                  <div className={styles.cell}>
                     {droppables[droppableId].items.length > 0
                       ? (
                         droppables[droppableId].items.map(itemId => (
@@ -138,14 +122,14 @@ function DndExample() {
                         ))
                       )
                       : (
-                        <p style={{ color: '#999', margin: 0 }}>{droppables[droppableId].name}</p>
+                        <p className={styles.emptyCellText}>{droppables[droppableId].name}</p>
                       )
                     }
                   </div>
                 </Droppable>
               ))}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '20px' }}>
+            <div className={styles.itemsContainer}>
               {draggableItems.map(item => {
                 if (!droppedItems.has(item.id)) {
                   return (
@@ -158,16 +142,22 @@ function DndExample() {
               })}
             </div>
           </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            width: '200px'
-          }}>
-            <Msg.Notifications />
-          </div>
+          {
+        !isMobile && (
+        <div className={styles.notificationsContainer}>
+          <Msg.Notifications />
+        </div>
+        )
+      }
         </div>
       </DndContext>
+      {
+        isMobile && (
+        <div className={styles.notificationsContainer}>
+          <Msg.Notifications />
+        </div>
+        )
+      }
     </div>
   );
 }

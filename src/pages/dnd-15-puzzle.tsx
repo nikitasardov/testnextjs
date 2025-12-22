@@ -65,9 +65,9 @@ function DndGame15() {
   };
 
   // Функция для преобразования состояния droppables в массив board для проверки решаемости
-  const getBoardState = (): number[] => {
+  const getBoardState = (droppablesToCheck: typeof droppables = droppables): number[] => {
     const board: number[] = [];
-    const droppableKeys = Object.keys(droppables).sort((a, b) => {
+    const droppableKeys = Object.keys(droppablesToCheck).sort((a, b) => {
       // Сортируем по номеру: droppable1, droppable2, ..., droppable16
       const numA = Number.parseInt(a.replace('droppable', ''), 10);
       const numB = Number.parseInt(b.replace('droppable', ''), 10);
@@ -75,7 +75,7 @@ function DndGame15() {
     });
 
     droppableKeys.forEach(droppableId => {
-      const droppable = droppables[droppableId];
+      const droppable = droppablesToCheck[droppableId];
       if (droppable.items.length > 0) {
         // Извлекаем номер из id элемента (draggable1 -> 1, draggable2 -> 2, и т.д.)
         const itemId = droppable.items[0];
@@ -90,8 +90,8 @@ function DndGame15() {
     return board;
   };
 
-  // Проверка решаемости комбинации
-  useEffect(() => {
+  // Функция для проверки решаемости комбинации
+  const checkSolvability = (droppablesToCheck: typeof droppables) => {
     try {
       // Удаляем предыдущие постоянные уведомления
       const notifications = document.getElementById('notifications');
@@ -100,7 +100,7 @@ function DndGame15() {
         existingPersistent.forEach(el => el.remove());
       }
 
-      const board = getBoardState();
+      const board = getBoardState(droppablesToCheck);
       // Проверяем, что все элементы на доске (15 элементов + 1 пустая)
       const filledCells = board.filter(x => x !== 0).length;
       if (filledCells === 15) {
@@ -114,8 +114,7 @@ function DndGame15() {
     } catch (error) {
       console.error('Ошибка при проверке решаемости:', error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droppables]);
+  };
 
   // Функция для перемешивания элементов
   const shuffleItems = () => {
@@ -138,6 +137,8 @@ function DndGame15() {
     });
 
     setDroppables(shuffledDroppablesState);
+    // Проверяем решаемость после перемешивания
+    checkSolvability(shuffledDroppablesState);
   };
 
   // Функция-заглушка для сохранения

@@ -36,9 +36,9 @@
 
 /* Игровое поле */
 .gameBoard {
-    width: 600px;
+    width: 500px;
     aspect-ratio: 1 / 1;
-    max-width: 600px;
+    max-width: 500px;
     border: 2px solid #333;
     border-radius: 8px;
     position: relative;
