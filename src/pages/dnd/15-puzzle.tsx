@@ -108,7 +108,7 @@ function DndGame15() {
         if (solvable) {
           Msg.success('Решение есть!');
         } else {
-          Msg.warn('Комбинация не решаема', 'red', true);
+          Msg.warn('Решения нет. Перемешайте снова', 'red', true);
         }
       }
     } catch (error) {
