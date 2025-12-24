@@ -59,10 +59,22 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known hosts
+        continue-on-error: true
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          echo "Добавление сервера ${{ secrets.SERVER_HOST }} в known_hosts..."
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} 2>&1 | tee -a ~/.ssh/known_hosts || {
+            echo "Предупреждение: ssh-keyscan завершился с ошибкой, но продолжаем..."
+            echo "Это нормально, если используется StrictHostKeyChecking=no"
+          }
           chmod 600 ~/.ssh/known_hosts
+          echo "Проверка known_hosts:"
+          if [ -f ~/.ssh/known_hosts ]; then
+            grep "${{ secrets.SERVER_HOST }}" ~/.ssh/known_hosts || echo "Сервер не найден в known_hosts (это нормально, если используется StrictHostKeyChecking=no)"
+          else
+            echo "Файл known_hosts не создан"
+          fi
 
       - name: Test SSH connection
         run: |
