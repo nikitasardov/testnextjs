@@ -59,194 +59,49 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known hosts
-        continue-on-error: true
         run: |
           mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "Добавление сервера ${{ secrets.SERVER_HOST }} в known_hosts..."
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} 2>&1 | tee -a ~/.ssh/known_hosts || {
-            echo "Предупреждение: ssh-keyscan завершился с ошибкой, но продолжаем..."
-            echo "Это нормально, если используется StrictHostKeyChecking=no"
-          }
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-          echo "Проверка known_hosts:"
-          if [ -f ~/.ssh/known_hosts ]; then
-            grep "${{ secrets.SERVER_HOST }}" ~/.ssh/known_hosts || echo "Сервер не найден в known_hosts (это нормально, если используется StrictHostKeyChecking=no)"
-          else
-            echo "Файл known_hosts не создан"
-          fi
-
-      - name: Test SSH connection
-        run: |
-          echo "Проверка SSH подключения..."
-          ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=10 \
-              -o ServerAliveInterval=60 \
-              -o ServerAliveCountMax=3 \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "echo 'SSH подключение успешно!'"
-
-      - name: Prepare server directory
-        run: |
-          echo "Подготовка директории на сервере..."
-          ssh -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=60 \
-              -o ServerAliveCountMax=3 \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
-            set -e
-            mkdir -p ${{ secrets.SERVER_PATH }}
-            cd ${{ secrets.SERVER_PATH }}
-            echo "Директория готова: \$(pwd)"
-          EOF
-
-      - name: Create .env file
-        run: |
-          cat > .env << EOF
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          EOF
 
       - name: Copy files to server
         timeout-minutes: 10
         run: |
-          echo "Копирование файлов на сервер..."
-          echo "Время последнего изменения локальных файлов:"
-          find . -type f -name "*.ts" -o -name "*.tsx" | head -3 | xargs ls -lt 2>/dev/null | head -3 || echo "не удалось определить"
-          echo ""
-
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.next' \
             --exclude '.git' \
             --exclude '.env' \
             --exclude '.github' \
-            --exclude '*.log' \
-            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=60 -o ServerAliveCountMax=3" \
-            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }} || {
-            echo "❌ Ошибка rsync (код: $?)"
-            echo "Проверьте:"
-            echo "1. Существует ли директория ${{ secrets.SERVER_PATH }} на сервере"
-            echo "2. Есть ли права на запись в эту директорию"
-            echo "3. Правильность SERVER_USER и SERVER_PATH в Secrets"
-            exit 1
-          }
-          echo "✅ Файлы успешно скопированы"
-
-          echo ""
-          echo "Проверка времени изменения файлов на сервере после копирования:"
-          ssh -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=60 \
-              -o ServerAliveCountMax=3 \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ secrets.SERVER_PATH }} && find . -type f -name '*.ts' -o -name '*.tsx' | head -3 | xargs ls -lt 2>/dev/null | head -3 || echo 'не удалось определить'"
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}
 
       - name: Deploy on server
         timeout-minutes: 30
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=10 \
-              -o ServerAliveInterval=60 \
-              -o ServerAliveCountMax=3 \
-              -o TCPKeepAlive=yes \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
             set -e
-            set -x  # Включить отладочный вывод
-
-            echo "Переход в директорию проекта..."
-            cd ${{ secrets.SERVER_PATH }} || {
-              echo "❌ Ошибка: директория ${{ secrets.SERVER_PATH }} не существует!"
-              exit 1
-            }
-
-            echo "Текущая директория: \$(pwd)"
-            echo "Содержимое директории:"
-            ls -la
-
-            echo ""
-            echo "Проверка времени изменения файлов (последние 5 измененных):"
-            find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | head -5 | xargs ls -lt 2>/dev/null | head -5 || echo "не удалось определить"
-            echo ""
-
-            echo "Создание .env файла..."
-            # Удаляем старый .env если он поврежден (содержит код вместо переменных)
-            if grep -q "echo.*deploy.sh" .env 2>/dev/null; then
-              echo "Обнаружен поврежденный .env файл, удаляем..."
-              rm -f .env
-            fi
+            cd ${{ secrets.SERVER_PATH }}
             
-            # Создаем .env файл построчно для избежания проблем с heredoc
+            # Создаем .env файл
             echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" > .env
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
             echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
             echo "VSEGPT_API_KEY=${{ secrets.VSEGPT_API_KEY }}" >> .env
             echo "VSEGPT_MODEL=${{ secrets.VSEGPT_MODEL }}" >> .env
             
-            echo "Проверка содержимого .env файла:"
-            cat .env
-            echo ""
-
-            echo "Проверка наличия deploy.sh..."
-            if [ ! -f deploy.sh ]; then
-              echo "❌ Ошибка: файл deploy.sh не найден!"
-              echo "Содержимое директории:"
-              ls -la
-              exit 1
-            fi
-
-            echo "Установка прав на выполнение для deploy.sh..."
+            # Запускаем деплой скрипт
             chmod +x deploy.sh
-
-            echo "Запуск деплой скрипта..."
-            echo "=========================================="
-            # Запускаем скрипт с явным выводом всех команд
-            # Используем явное перенаправление для гарантированного вывода
-            bash -x ./deploy.sh
-            EXIT_CODE=\$?
-            if [ \$EXIT_CODE -ne 0 ]; then
-              echo "ОШИБКА при выполнении deploy.sh (код: \$EXIT_CODE)"
-              echo "Проверьте логи выше для деталей"
-              exit \$EXIT_CODE
-            fi
-            echo "=========================================="
-            echo "✅ Деплой на сервере завершен успешно"
-
-            # Проверяем, что контейнер действительно перезапустился
-            echo ""
-            echo "Проверка статуса контейнера:"
-            docker compose ps
-            echo ""
-            echo "Время создания контейнера:"
-            docker inspect nextjs-app --format='{{.Created}}' 2>/dev/null || echo "Контейнер не найден"
-            echo ""
-            echo "ID образа контейнера:"
-            docker inspect nextjs-app --format='{{.Image}}' 2>/dev/null || echo "Контейнер не найден"
+            ./deploy.sh
           EOF
 
       - name: Health check
         timeout-minutes: 5
         run: |
-          echo "Ожидание запуска приложения..."
-          for i in {1..30}; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.SERVER_HOST }}:3000 || echo "000")
-            if [ "$response" = "200" ]; then
-              echo "✅ Health check passed! Response code: $response"
-              exit 0
-            fi
-            echo "Попытка $i/30: Response code: $response"
-            sleep 2
-          done
-          echo "❌ Health check failed after 30 attempts"
-          exit 1
-
-      - name: Deployment notification
-        if: success()
-        run: |
-          echo "✅ Deployment successful!"
-          echo "Application is available at: http://${{ secrets.SERVER_HOST }}:3000"
-
-      - name: Deployment failure notification
-        if: failure()
-        run: |
-          echo "❌ Deployment failed!"
-          exit 1
+          sleep 10
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.SERVER_HOST }}:3000 || echo "000")
+          if [ "$response" != "200" ]; then
+            echo "Health check failed. Response code: $response"
+            exit 1
+          fi
+          echo "Health check passed!"
