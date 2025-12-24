@@ -25,15 +25,17 @@ cat ~/.ssh/github_actions_deploy
 
 Добавьте следующие секреты:
 
-| Name                            | Value                         | Описание                           |
-| ------------------------------- | ----------------------------- | ---------------------------------- |
-| `SSH_PRIVATE_KEY`               | Весь приватный ключ из шага 1 | SSH ключ для подключения к серверу |
-| `SERVER_HOST`                   | IP или домен сервера          | Например: `123.45.67.89`           |
-| `SERVER_USER`                   | Имя пользователя              | Например: `root` или `ubuntu`      |
-| `SERVER_PATH`                   | Путь к проекту                | Например: `/var/www/testnextjs`    |
-| `NEXT_PUBLIC_SUPABASE_URL`      | URL Supabase проекта          | Из настроек Supabase               |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon ключ                     | Из настроек Supabase               |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Service role ключ             | Из настроек Supabase (опционально) |
+| Name                            | Value                         | Описание                                            |
+| ------------------------------- | ----------------------------- | --------------------------------------------------- |
+| `SSH_PRIVATE_KEY`               | Весь приватный ключ из шага 1 | SSH ключ для подключения к серверу                  |
+| `SERVER_HOST`                   | IP или домен сервера          | Например: `123.45.67.89`                            |
+| `SERVER_USER`                   | Имя пользователя              | Например: `root` или `ubuntu`                       |
+| `SERVER_PATH`                   | Путь к проекту                | Например: `/var/www/testnextjs`                     |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL Supabase проекта          | Из настроек Supabase                                |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon ключ                     | Из настроек Supabase                                |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Service role ключ             | Из настроек Supabase (опционально)                  |
+| `VSEGPT_API_KEY`                | API ключ VseGPT               | Для работы подсказок в игре                         |
+| `VSEGPT_MODEL`                  | Модель LLM                    | Например: `openai/gpt-3.5-turbo-1106` (опционально) |
 
 ## Шаг 3: Проверка файлов
 

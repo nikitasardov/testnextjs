@@ -144,11 +144,22 @@ jobs:
             echo ""
 
             echo "Создание .env файла..."
-            cat > .env << 'ENVEOF'
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            ENVEOF
+            # Удаляем старый .env если он поврежден (содержит код вместо переменных)
+            if grep -q "echo.*deploy.sh" .env 2>/dev/null; then
+              echo "Обнаружен поврежденный .env файл, удаляем..."
+              rm -f .env
+            fi
+            
+            # Создаем .env файл построчно для избежания проблем с heredoc
+            echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" > .env
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+            echo "VSEGPT_API_KEY=${{ secrets.VSEGPT_API_KEY }}" >> .env
+            echo "VSEGPT_MODEL=${{ secrets.VSEGPT_MODEL }}" >> .env
+            
+            echo "Проверка содержимого .env файла:"
+            cat .env
+            echo ""
 
             echo "Проверка наличия deploy.sh..."
             if [ ! -f deploy.sh ]; then
@@ -164,12 +175,14 @@ jobs:
             echo "Запуск деплой скрипта..."
             echo "=========================================="
             # Запускаем скрипт с явным выводом всех команд
-            bash -x ./deploy.sh 2>&1 || {
-              EXIT_CODE=\$?
-              echo "❌ Ошибка при выполнении deploy.sh (код: \$EXIT_CODE)"
+            # Используем явное перенаправление для гарантированного вывода
+            bash -x ./deploy.sh
+            EXIT_CODE=\$?
+            if [ \$EXIT_CODE -ne 0 ]; then
+              echo "ОШИБКА при выполнении deploy.sh (код: \$EXIT_CODE)"
               echo "Проверьте логи выше для деталей"
               exit \$EXIT_CODE
-            }
+            fi
             echo "=========================================="
             echo "✅ Деплой на сервере завершен успешно"
 

@@ -212,6 +212,14 @@ cat ~/.ssh/github_actions_deploy
 - Name: `SUPABASE_SERVICE_ROLE_KEY`
 - Value: Service role ключ из Supabase (опционально, но рекомендуется)
 
+**VSEGPT_API_KEY**
+- Name: `VSEGPT_API_KEY`
+- Value: API ключ для VseGPT (для работы подсказок в игре 15-puzzle)
+
+**VSEGPT_MODEL**
+- Name: `VSEGPT_MODEL`
+- Value: Модель LLM для использования (опционально, по умолчанию: `openai/gpt-3.5-turbo-1106`)
+
 #### Шаг 3: Проверка workflow файла
 
 Убедитесь, что файл `.github/workflows/deploy.yml` существует в репозитории. Он уже должен быть создан и содержать конфигурацию для автодеплоя.
