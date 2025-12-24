@@ -9,10 +9,11 @@ on:
 
 env:
   NODE_VERSION: "22"
-  REGISTRY: ghcr.io
+  IMAGE_NAME: "testnextjs-app"
+  IMAGE_TAG: "latest"
 
 jobs:
-  # Проверка кода перед деплоем
+  # Фаза 1: Тесты
   test:
     name: Test and Lint
     runs-on: ubuntu-latest
@@ -42,9 +43,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-  # Деплой на сервер
-  deploy:
-    name: Deploy to Server
+  # Фаза 2: Сборка образа на runner'е
+  build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
@@ -52,6 +53,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
+            -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+
+      - name: Save image to tar
+        run: |
+          docker save ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} | gzip > image.tar.gz
+          ls -lh image.tar.gz
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -65,35 +81,80 @@ jobs:
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Copy files to server
-        timeout-minutes: 10
+      - name: Copy image to server
+        timeout-minutes: 15
         run: |
-          rsync -avz --delete \
-            --exclude 'node_modules' \
-            --exclude '.next' \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude '.github' \
-            -e "ssh -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}
+          echo "Копирование образа на сервер..."
+          scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/image.tar.gz
+          echo "Образ успешно скопирован на сервер"
+
+  # Фаза 3: Распаковка и запуск образа на сервере
+  deploy:
+    name: Deploy Image to Server
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        continue-on-error: true
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy on server
-        timeout-minutes: 30
+        timeout-minutes: 10
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
             set -e
             cd ${{ secrets.SERVER_PATH }}
-            
-            # Создаем .env файл
+
+            echo "Создание .env файла..."
             echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" > .env
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
             echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
             echo "VSEGPT_API_KEY=${{ secrets.VSEGPT_API_KEY }}" >> .env
             echo "VSEGPT_MODEL=${{ secrets.VSEGPT_MODEL }}" >> .env
-            
-            # Запускаем деплой скрипт
-            chmod +x deploy.sh
-            ./deploy.sh
+
+            echo "Загрузка образа из tar..."
+            docker load < image.tar.gz
+
+            echo "Проверка загруженного образа..."
+            if ! docker images ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} | grep -q ${{ env.IMAGE_NAME }}; then
+              echo "ОШИБКА: образ не загружен!"
+              exit 1
+            fi
+            docker images ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+            echo "Образ успешно загружен. Остановка старого контейнера..."
+            docker stop nextjs-app 2>/dev/null || true
+            docker rm nextjs-app 2>/dev/null || true
+
+            echo "Очистка старых образов (dangling)..."
+            docker image prune -f
+
+            echo "Запуск нового контейнера..."
+            docker run -d \
+              --name nextjs-app \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              --env-file .env \
+              ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+            echo "Ожидание запуска контейнера..."
+            sleep 5
+
+            echo "Проверка статуса контейнера:"
+            docker ps | grep nextjs-app
+
+            echo "Очистка временного файла..."
+            rm -f image.tar.gz
           EOF
 
       - name: Health check

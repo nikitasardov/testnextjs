@@ -7,6 +7,14 @@ FROM node:20-alpine AS builder
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
+# Аргументы сборки для переменных окружения Next.js
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Устанавливаем переменные окружения для сборки
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 # Копируем файлы зависимостей
 COPY package*.json ./
 COPY yarn.lock ./
@@ -19,7 +27,6 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Собираем приложение для продакшена
-# Переменные окружения будут установлены при запуске контейнера
 RUN yarn build
 
 # Этап 2: Продакшен (минимальный образ)
