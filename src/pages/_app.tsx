@@ -1,7 +1,9 @@
 // глобальные стили CSS
 import "@/styles/globals.css";
-// типы из Next.js для типизации props
+
 import type { AppProps } from "next/app";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 import { useMemo, useState, useEffect } from "react";
 
@@ -15,11 +17,11 @@ import CssBaseline from '@mui/material/CssBaseline';
 // AuthProvider - провайдер контекста авторизации
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
-// компоненты Material UI для разметки
+// компоненты Material UI
 import { Box, AppBar, Toolbar, Container, Typography, IconButton } from '@mui/material';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import AuthButton from '@/components/AuthButton';
-import Link from "next/link";
-import { useRouter } from "next/router";
 
 // утилиты для работы с cookies
 import { getCookie, setCookie } from '@/utils/cookies';
@@ -115,8 +117,8 @@ function AppContent({ Component, pageProps }: AppProps) {
               aria-label={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
             >
               {themeMode === 'light'
-                ? <span aria-label="Темная тема" style={{ fontSize: '20px' }}>🌙</span>
-                : <span aria-label="Светлая тема" style={{ fontSize: '20px' }}>☀️</span>
+                ? <DarkModeIcon aria-label="Переключить на темную тему" />
+                : <LightModeIcon aria-label="Переключить на светлую тему" />
               }
             </IconButton>
             {/* AuthButton - компонент кнопки авторизации */}

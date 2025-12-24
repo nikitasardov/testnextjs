@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { Draggable } from '@/components/Draggable';
 import { Droppable, isDroppable } from '@/components/Droppable';
@@ -16,6 +16,8 @@ function DndExample() {
     generateDroppables(4)
   );
   const [isLoading, setIsLoading] = useState(true);
+  const loadConfigRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxItemsPerDroppable = 3;
   const draggableItems = generateDraggables(13);
 
@@ -24,6 +26,12 @@ function DndExample() {
 
   // Загрузка конфигурации при монтировании
   useEffect(() => {
+    // Защита от двойного вызова из-за React Strict Mode
+    if (loadConfigRef.current) {
+      return;
+    }
+    loadConfigRef.current = true;
+
     const loadConfig = async () => {
       setIsLoading(true);
       const { config, error } = await loadGameConfig('example');
@@ -93,10 +101,16 @@ function DndExample() {
           if (!updates[overDroppableKey].items.includes(itemId)) {
             updates[overDroppableKey].items = [...updates[overDroppableKey].items, itemId];
           }
-          // Сохраняем конфигурацию после изменения
-          saveGameConfig('example', updates).catch(error => {
-            console.error('Ошибка сохранения:', error);
-          });
+          // Сохраняем конфигурацию после изменения с защитой от двойного вызова
+          if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+          }
+          saveTimeoutRef.current = setTimeout(() => {
+            saveGameConfig('example', updates).catch(error => {
+              console.error('Ошибка сохранения:', error);
+            });
+            saveTimeoutRef.current = null;
+          }, 300);
           return updates;
         });
 
@@ -115,10 +129,16 @@ function DndExample() {
             items: prev[currentDroppableKey].items.filter(id => id !== itemId)
           },
         };
-        // Сохраняем конфигурацию после изменения
-        saveGameConfig('example', updates).catch(error => {
-          console.error('Ошибка сохранения:', error);
-        });
+        // Сохраняем конфигурацию после изменения с защитой от двойного вызова
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          saveGameConfig('example', updates).catch(error => {
+            console.error('Ошибка сохранения:', error);
+          });
+          saveTimeoutRef.current = null;
+        }, 300);
         return updates;
       });
 

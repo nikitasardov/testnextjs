@@ -1,18 +1,23 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { Button, useMediaQuery, useTheme } from '@mui/material';
+import { Button, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Draggable } from '@/components/Draggable';
 import { Droppable, isDroppable } from '@/components/Droppable';
 import { generateDroppables, generateDraggables, shuffleArray } from '@/utils/dnd-helpers';
 import * as Notifications from '@/components/Notifications';
 import { withAuth } from "@/components/withAuth";
 import { saveGameConfig, loadGameConfig } from '@/utils/game-api';
+import { getHintFromLLM } from '@/utils/hint-api';
 import styles from './15-puzzle.module.css';
 
-function DndGame15() {
+function Dnd15Puzzle() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Название модели LLM для подсказки
+  const [llmModelName, setLlmModelName] = useState<string>('AI');
 
   // Настройка сенсоров для поддержки touch-событий на мобильных устройствах
   const sensors = useSensors(
@@ -34,6 +39,11 @@ function DndGame15() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isNewGame, setIsNewGame] = useState(false);
+  const [loadedConfig, setLoadedConfig] = useState<boolean | null>(null);
+  const [configToCheck, setConfigToCheck] = useState<typeof droppables | null>(null);
+  const [isHintLoading, setIsHintLoading] = useState(false);
+  const loadConfigRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const draggableItems = generateDraggables(15, '');
 
@@ -111,7 +121,7 @@ function DndGame15() {
         if (solvable) {
           Notifications.success('Решение есть!');
         } else {
-          Notifications.warn('Решения нет. Перемешайте снова', 'red', true);
+          Notifications.warn('Решения нет. Нажмите "Заново" для новой игры', 'red', true);
         }
       }
     } catch (error) {
@@ -147,16 +157,95 @@ function DndGame15() {
 
   // Функция для сохранения конфигурации
   const handleSave = async () => {
-    const { success, error } = await saveGameConfig('15-puzzle', droppables);
-    if (success) {
-      Notifications.success('Игра сохранена');
-    } else {
-      Notifications.warn(`Ошибка сохранения: ${error || 'Неизвестная ошибка'}`);
+    // Защита от двойного вызова
+    if (saveTimeoutRef.current) {
+      return;
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const { success, error } = await saveGameConfig('15-puzzle', droppables);
+      if (success) {
+        Notifications.success('Игра сохранена');
+      } else {
+        Notifications.warn(`Ошибка сохранения: ${error || 'Неизвестная ошибка'}`);
+      }
+      saveTimeoutRef.current = null;
+    }, 100);
+  };
+
+  // Функция для получения подсказки
+  const handleGetHint = async () => {
+    if (isHintLoading) {
+      return;
+    }
+
+    // Проверяем решаемость на фронтенде перед отправкой запроса
+    try {
+      const board = getBoardState(droppables);
+      const filledCells = board.filter(x => x !== 0).length;
+
+      if (filledCells === 15) {
+        const solvable = isSolvable(board);
+        if (!solvable) {
+          // Комбинация нерешаема - показываем сообщение без запроса к API
+          const unsolvableMessage = 'Данную комбинацию плиток невозможно упорядочить. Начните новую игру.';
+          Notifications.notify(unsolvableMessage, '#9c27b0', false, 30000);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке решаемости:', error);
+      // Продолжаем выполнение, если проверка не удалась
+    }
+
+    setIsHintLoading(true);
+    // Показываем уведомление о том, что LLM думает
+    Notifications.inProgress(`${llmModelName} уже занимается вашим вопросом...`);
+
+    try {
+      // Передаем только состояние игры, промпт формируется на бекенде
+      const { hint, error } = await getHintFromLLM(droppables);
+
+      if (error || !hint) {
+        Notifications.warn(error || 'Не удалось получить подсказку. Попробуйте позже.');
+        return;
+      }
+
+      Notifications.notify(hint, '#9c27b0', false, 30000);
+    } catch (error) {
+      console.error('Ошибка при получении подсказки:', error);
+      Notifications.warn('Не удалось получить подсказку. Попробуйте позже.');
+    } finally {
+      setIsHintLoading(false);
     }
   };
 
+  // Загрузка названия модели LLM при монтировании
+  useEffect(() => {
+    const loadModelName = async () => {
+      try {
+        const response = await fetch('/api/games/get-model-name');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.modelName) {
+            setLlmModelName(data.modelName);
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки названия модели:', error);
+      }
+    };
+    loadModelName();
+  }, []);
+
   // Загрузка конфигурации при монтировании
   useEffect(() => {
+    // Защита от двойного вызова из-за React Strict Mode
+    if (loadConfigRef.current) {
+      return;
+    }
+    loadConfigRef.current = true;
+
     const loadConfig = async () => {
       setIsLoading(true);
       const { config, error } = await loadGameConfig('15-puzzle');
@@ -181,14 +270,13 @@ function DndGame15() {
 
         setDroppables(shuffledDroppablesState);
         setIsNewGame(true);
-        checkSolvability(shuffledDroppablesState);
+        setConfigToCheck(shuffledDroppablesState);
       } else if (config) {
         // Успешно загружена конфигурация
         setDroppables(config.droppables);
-        // Проверяем решаемость загруженной конфигурации
-        Notifications.success('Игра загружена');
         setIsNewGame(false);
-        checkSolvability(config.droppables);
+        setLoadedConfig(true);
+        setConfigToCheck(config.droppables);
       } else {
         // Конфигурация не найдена, начинаем новую игру
         const droppableKeys = Object.keys(droppables);
@@ -209,7 +297,7 @@ function DndGame15() {
 
         setDroppables(shuffledDroppablesState);
         setIsNewGame(true);
-        checkSolvability(shuffledDroppablesState);
+        setConfigToCheck(shuffledDroppablesState);
       }
       setIsLoading(false);
     };
@@ -270,6 +358,23 @@ function DndGame15() {
     }
   }, [isNewGame, isLoading]);
 
+  // Показываем уведомление "Игра загружена" после успешной загрузки
+  useEffect(() => {
+    if (!isLoading && loadedConfig === true) {
+      Notifications.success('Игра загружена');
+      setLoadedConfig(null); // Сбрасываем флаг
+    }
+  }, [isLoading, loadedConfig]);
+
+  // Проверяем решаемость после монтирования контейнера уведомлений
+  useEffect(() => {
+    if (!isLoading && configToCheck) {
+      checkSolvability(configToCheck);
+      setConfigToCheck(null); // Сбрасываем флаг
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, configToCheck]);
+
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
 
   if (isLoading) {
@@ -306,30 +411,55 @@ function DndGame15() {
           </div>
           <div className={`${styles.buttonsContainer} ${isMobile ? styles.buttonsContainerMobile : ''}`}>
             <div className={`${styles.actionsContainer} ${isMobile ? styles.actionsContainerMobile : ''}`}>
-              <Button
-                variant="contained"
-                onClick={shuffleItems}
-                sx={{
-                  mb: isMobile ? 0 : 2,
-                  backgroundColor: 'red',
-                  '&:hover': { backgroundColor: '#d32f2f' },
-                  flex: isMobile ? 1 : 'none'
-                }}
-              >
-                Перемешать
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleSave}
-                sx={{
-                  mb: isMobile ? 0 : 2,
-                  backgroundColor: 'green',
-                  '&:hover': { backgroundColor: '#2e7d32' },
-                  flex: isMobile ? 1 : 'none'
-                }}
-              >
-                Сохранить
-              </Button>
+              <Tooltip title="Начать новую игру">
+                <Button
+                  variant="contained"
+                  onClick={shuffleItems}
+                  sx={{
+                    mb: isMobile ? 0 : 2,
+                    backgroundColor: 'red',
+                    '&:hover': { backgroundColor: '#d32f2f' },
+                    flex: isMobile ? 1 : 'none'
+                  }}
+                >
+                  Заново
+                </Button>
+              </Tooltip>
+              <Tooltip title="Запомнить расположение плиток, чтобы продолжить позже">
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  sx={{
+                    mb: isMobile ? 0 : 2,
+                    backgroundColor: 'green',
+                    '&:hover': { backgroundColor: '#2e7d32' },
+                    flex: isMobile ? 1 : 'none'
+                  }}
+                >
+                  Сохранить
+                </Button>
+              </Tooltip>
+              <Tooltip title={`${llmModelName} порекомендует следующий ход`}>
+                <Button
+                  variant="contained"
+                  onClick={handleGetHint}
+                  disabled={isHintLoading}
+                  startIcon={<AutoAwesomeIcon />}
+                  sx={{
+                    mb: isMobile ? 0 : 2,
+                    backgroundColor: '#9c27b0',
+                    '&:hover': { backgroundColor: '#7b1fa2' },
+                    flex: isMobile ? 1 : 'none',
+                    ...(isHintLoading && {
+                      background: 'linear-gradient(90deg, #9c27b0 0%, #ba68c8 25%, #9c27b0 50%, #ba68c8 75%, #9c27b0 100%)',
+                      backgroundSize: '300% 100%',
+                      animation: 'shimmer-gray 3s linear infinite',
+                    }),
+                  }}
+                >
+                  {isHintLoading ? 'Загрузка...' : 'Подсказка'}
+                </Button>
+              </Tooltip>
             </div>
             {!isMobile && draggableItems.map(item => {
               if (!droppedItems.has(item.id)) {
@@ -351,4 +481,4 @@ function DndGame15() {
   );
 }
 
-export default withAuth(DndGame15);
+export default withAuth(Dnd15Puzzle);

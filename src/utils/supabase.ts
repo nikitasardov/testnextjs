@@ -1,5 +1,5 @@
 
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient, SupabaseClientOptions } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -27,7 +27,7 @@ export function createServerSupabaseClient(useServiceRole: boolean = false, acce
         );
     }
 
-    const clientOptions: any = {
+    const clientOptions: SupabaseClientOptions<"public"> = {
         auth: {
             autoRefreshToken: false,
             persistSession: false,

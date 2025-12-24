@@ -4,7 +4,7 @@ function withTimeout(element: HTMLElement, timeout: number = 3000) {
   }, timeout);
 }
 
-export function notify(message: string, type: string = 'gray', persistent: boolean = false) {
+export function notify(message: string, type: string = 'gray', persistent: boolean = false, timeout: number = 3000) {
   const notifications = document.getElementById('notifications');
   if (notifications) {
     const single = notifications.dataset.single === 'true';
@@ -31,7 +31,7 @@ export function notify(message: string, type: string = 'gray', persistent: boole
     notifications.appendChild(notification);
 
     if (!persistent) {
-      withTimeout(notification);
+      withTimeout(notification, timeout);
     }
   }
 }
@@ -46,6 +46,31 @@ export function warn(message: string, type: string = 'red', persistent: boolean 
 
 export function success(message: string, type: string = 'green', persistent: boolean = false) {
   notify(message, type, persistent);
+}
+
+export function inProgress(message: string, timeout: number = 20000) {
+  const notifications = document.getElementById('notifications');
+  if (notifications) {
+    const single = notifications.dataset.single === 'true';
+
+    if (single) {
+      // Удаляем все существующие уведомления
+      notifications.innerHTML = '';
+    }
+
+    const notification = document.createElement('div');
+    notification.innerHTML = message;
+    notification.style.color = 'white';
+    notification.style.padding = '10px';
+    notification.style.marginBottom = '2px';
+    notification.style.borderRadius = '5px';
+    notification.style.background = 'linear-gradient(90deg, #808080 0%, #a0a0a0 25%, #808080 50%, #a0a0a0 75%, #808080 100%)';
+    notification.style.backgroundSize = '300% 100%';
+    notification.style.animation = 'shimmer-gray 5s linear infinite';
+
+    notifications.appendChild(notification);
+    withTimeout(notification, timeout);
+  }
 }
 
 export function Container({ single = false }: { readonly single?: boolean }) {
