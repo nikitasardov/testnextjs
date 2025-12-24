@@ -93,6 +93,10 @@ jobs:
         timeout-minutes: 10
         run: |
           echo "Копирование файлов на сервер..."
+          echo "Время последнего изменения локальных файлов:"
+          find . -type f -name "*.ts" -o -name "*.tsx" | head -3 | xargs ls -lt 2>/dev/null | head -3 || echo "не удалось определить"
+          echo ""
+
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.next' \
@@ -111,6 +115,11 @@ jobs:
           }
           echo "✅ Файлы успешно скопированы"
 
+          echo ""
+          echo "Проверка времени изменения файлов на сервере после копирования:"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cd ${{ secrets.SERVER_PATH }} && find . -type f -name '*.ts' -o -name '*.tsx' | head -3 | xargs ls -lt 2>/dev/null | head -3 || echo 'не удалось определить'"
+
       - name: Deploy on server
         timeout-minutes: 15
         run: |
@@ -128,6 +137,11 @@ jobs:
             echo "Текущая директория: \$(pwd)"
             echo "Содержимое директории:"
             ls -la
+
+            echo ""
+            echo "Проверка времени изменения файлов (последние 5 измененных):"
+            find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | head -5 | xargs ls -lt 2>/dev/null | head -5 || echo "не удалось определить"
+            echo ""
 
             echo "Создание .env файла..."
             cat > .env << 'ENVEOF'
@@ -148,13 +162,27 @@ jobs:
             chmod +x deploy.sh
 
             echo "Запуск деплой скрипта..."
-            ./deploy.sh || {
-              echo "❌ Ошибка при выполнении deploy.sh (код: \$?)"
+            echo "=========================================="
+            # Запускаем скрипт с явным выводом всех команд
+            bash -x ./deploy.sh 2>&1 || {
+              EXIT_CODE=\$?
+              echo "❌ Ошибка при выполнении deploy.sh (код: \$EXIT_CODE)"
               echo "Проверьте логи выше для деталей"
-              exit 1
+              exit \$EXIT_CODE
             }
-
+            echo "=========================================="
             echo "✅ Деплой на сервере завершен успешно"
+
+            # Проверяем, что контейнер действительно перезапустился
+            echo ""
+            echo "Проверка статуса контейнера:"
+            docker compose ps
+            echo ""
+            echo "Время создания контейнера:"
+            docker inspect nextjs-app --format='{{.Created}}' 2>/dev/null || echo "Контейнер не найден"
+            echo ""
+            echo "ID образа контейнера:"
+            docker inspect nextjs-app --format='{{.Image}}' 2>/dev/null || echo "Контейнер не найден"
           EOF
 
       - name: Health check

@@ -3,6 +3,7 @@
 # Используется GitHub Actions для автоматического деплоя
 
 set -e  # Остановка при ошибке
+set -x  # Отладочный вывод (показывать все команды)
 
 # Цвета для вывода
 GREEN='\033[0;32m'
@@ -90,23 +91,44 @@ docker image prune -f
 
 echo -e "${GREEN}[3/5] Сборка нового образа (без кэша)...${NC}"
 # Показываем текущий ID образа перед пересборкой (если существует)
-if docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1; then
+OLD_IMAGE_ID=""
+if docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1 > /dev/null 2>&1; then
     OLD_IMAGE_ID=$(docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1)
     echo "Старый ID образа: ${OLD_IMAGE_ID}"
+    echo "Старое время создания образа:"
+    docker inspect ${IMAGE_NAME}:latest --format='{{.Created}}' 2>/dev/null || echo "не удалось получить"
+else
+    echo "Старый образ не найден (это нормально для первого деплоя)"
 fi
 
+echo ""
+echo "Начало сборки образа..."
 # Собираем образ заново без использования кэша
-docker compose build --no-cache --pull
+if ! docker compose build --no-cache --pull; then
+    echo -e "${RED}❌ Ошибка при сборке образа!${NC}"
+    exit 1
+fi
 
+echo ""
+echo "Проверка результата сборки..."
 # Проверяем, что образ пересобрался
 NEW_IMAGE_ID=$(docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1)
-if [ -n "$NEW_IMAGE_ID" ]; then
-    echo "Новый ID образа: ${NEW_IMAGE_ID}"
-    if [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_IMAGE_ID" = "$NEW_IMAGE_ID" ]; then
-        echo -e "${YELLOW}⚠️  Внимание: ID образа не изменился! Возможно, код не обновился.${NC}"
-    else
-        echo -e "${GREEN}✅ Образ успешно пересобран${NC}"
-    fi
+if [ -z "$NEW_IMAGE_ID" ]; then
+    echo -e "${RED}❌ Ошибка: образ не найден после сборки!${NC}"
+    echo "Доступные образы:"
+    docker images | head -10
+    exit 1
+fi
+
+echo "Новый ID образа: ${NEW_IMAGE_ID}"
+echo "Новое время создания образа:"
+docker inspect ${IMAGE_NAME}:latest --format='{{.Created}}' 2>/dev/null || echo "не удалось получить"
+
+if [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_IMAGE_ID" = "$NEW_IMAGE_ID" ]; then
+    echo -e "${YELLOW}⚠️  ВНИМАНИЕ: ID образа не изменился! Возможно, код не обновился или используется кэш.${NC}"
+    echo "Проверьте, что файлы были скопированы на сервер перед запуском этого скрипта."
+else
+    echo -e "${GREEN}✅ Образ успешно пересобран (ID изменился)${NC}"
 fi
 
 echo -e "${GREEN}[4/5] Запуск нового контейнера...${NC}"
