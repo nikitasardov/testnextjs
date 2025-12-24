@@ -49,7 +49,8 @@ export default function Home() {
               <h2 className={cardTitle}>15-puzzle (Пятнашки)</h2>
               <p className={cardText}>
                 Игра с 16 ячейками. В начале игры элементы автоматически
-                распределяются случайным образом. Сохранение игры нажатием кнопки.
+                распределяются случайным образом. Сохранение игры нажатием кнопки.{' '}
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">AI-подсказки для оптимальных ходов.</span>
               </p>
               <span className={cardFooter}>Требуется авторизация →</span>
             </Link>
@@ -97,6 +98,10 @@ export default function Home() {
               <li className="flex items-start">
                 <span className="mr-2">✓</span>
                 <span>Темная тема</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>AI-подсказки для игры 15-puzzle</span>
               </li>
             </ul>
           </div>
