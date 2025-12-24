@@ -17,11 +17,22 @@ echo "==========================================${NC}"
 
 # Показываем информацию о текущем коммите (если есть git)
 if command -v git &> /dev/null && [ -d .git ]; then
-    echo "Текущий коммит: $(git rev-parse --short HEAD 2>/dev/null || echo 'неизвестно')"
-    echo "Ветка: $(git branch --show-current 2>/dev/null || echo 'неизвестно')"
-    echo "Последний коммит: $(git log -1 --format='%h - %s' 2>/dev/null || echo 'неизвестно')"
+    CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo 'неизвестно')
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo 'неизвестно')
+    LAST_COMMIT_MSG=$(git log -1 --format='%h - %s' 2>/dev/null || echo 'неизвестно')
+    echo "Текущий коммит: ${CURRENT_COMMIT}"
+    echo "Ветка: ${CURRENT_BRANCH}"
+    echo "Последний коммит: ${LAST_COMMIT_MSG}"
     echo ""
+
+    # Сохраняем информацию о коммите для проверки после деплоя
+    echo "${CURRENT_COMMIT}" > .deploy_commit 2>/dev/null || true
 fi
+
+# Показываем время последнего изменения файлов в проекте
+echo "Время последнего изменения файлов:"
+find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | head -5 | xargs ls -lt 2>/dev/null | head -1 || echo "не удалось определить"
+echo ""
 
 # Проверка наличия .env файла
 if [ ! -f .env ]; then
@@ -55,19 +66,52 @@ echo -e "${GREEN}[2/5] Удаление старого образа прилож
 COMPOSE_PROJECT_NAME=$(basename $(pwd) | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
 IMAGE_NAME="${COMPOSE_PROJECT_NAME}-app"
 
-# Удаляем все версии образа с таким именем
-docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${COMPOSE_PROJECT_NAME}" | xargs -r docker rmi -f 2>/dev/null || true
+echo "Имя проекта: ${COMPOSE_PROJECT_NAME}"
+echo "Ожидаемое имя образа: ${IMAGE_NAME}"
 
-# Альтернативный способ - удалить образ по тегу из docker-compose
+# Удаляем образ по точному имени (если он существует)
+if docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME}$"; then
+    echo "Удаление образа ${IMAGE_NAME}:latest..."
+    docker rmi -f ${IMAGE_NAME}:latest 2>/dev/null || true
+fi
+
+# Удаляем все образы, которые начинаются с имени проекта
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${COMPOSE_PROJECT_NAME}" | while read image; do
+    echo "Удаление образа: $image"
+    docker rmi -f "$image" 2>/dev/null || true
+done
+
+# Удаляем образы, используемые docker-compose
 docker compose down --rmi local 2>/dev/null || true
 
+# Дополнительная очистка - удаляем все неиспользуемые образы
+echo "Очистка неиспользуемых образов..."
+docker image prune -f
+
 echo -e "${GREEN}[3/5] Сборка нового образа (без кэша)...${NC}"
+# Показываем текущий ID образа перед пересборкой (если существует)
+if docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1; then
+    OLD_IMAGE_ID=$(docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1)
+    echo "Старый ID образа: ${OLD_IMAGE_ID}"
+fi
+
 # Собираем образ заново без использования кэша
 docker compose build --no-cache --pull
 
+# Проверяем, что образ пересобрался
+NEW_IMAGE_ID=$(docker images --format "{{.ID}}" ${IMAGE_NAME}:latest 2>/dev/null | head -1)
+if [ -n "$NEW_IMAGE_ID" ]; then
+    echo "Новый ID образа: ${NEW_IMAGE_ID}"
+    if [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_IMAGE_ID" = "$NEW_IMAGE_ID" ]; then
+        echo -e "${YELLOW}⚠️  Внимание: ID образа не изменился! Возможно, код не обновился.${NC}"
+    else
+        echo -e "${GREEN}✅ Образ успешно пересобран${NC}"
+    fi
+fi
+
 echo -e "${GREEN}[4/5] Запуск нового контейнера...${NC}"
 # Принудительно пересоздаем контейнер, даже если конфигурация не изменилась
-docker compose up -d --force-recreate --remove-orphans
+docker compose up -d --force-recreate --remove-orphans --build
 
 echo -e "${GREEN}[5/5] Ожидание запуска приложения...${NC}"
 sleep 5
@@ -81,6 +125,12 @@ docker inspect nextjs-app --format='{{.Image}}' 2>/dev/null || echo "Конте�
 echo ""
 echo "Время создания контейнера:"
 docker inspect nextjs-app --format='{{.Created}}' 2>/dev/null || echo "Контейнер еще не запущен"
+echo ""
+echo "Время создания образа:"
+docker inspect ${IMAGE_NAME}:latest --format='{{.Created}}' 2>/dev/null || echo "Образ не найден"
+echo ""
+echo "Размер образа:"
+docker images ${IMAGE_NAME}:latest --format "{{.Size}}" 2>/dev/null || echo "Образ не найден"
 
 # Проверка статуса контейнера
 if docker compose ps | grep -q "Up"; then
