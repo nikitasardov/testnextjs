@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { Draggable } from '../../components/Draggable';
-import { Droppable, isDroppable } from '../../components/Droppable';
-import * as Msg from '../../components/Notifications';
-import { generateDroppables, generateDraggables } from '../../utils/dnd-helpers';
+import { Draggable } from '@/components/Draggable';
+import { Droppable, isDroppable } from '@/components/Droppable';
+import * as Notifications from '@/components/Notifications';
+import { generateDroppables, generateDraggables } from '@/utils/dnd-helpers';
 import { withAuth } from '@/components/withAuth';
+import { saveGameConfig, loadGameConfig } from '@/utils/game-api';
 import styles from './example.module.css';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -14,15 +15,31 @@ function DndExample() {
   const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
     generateDroppables(4)
   );
+  const [isLoading, setIsLoading] = useState(true);
   const maxItemsPerDroppable = 3;
   const draggableItems = generateDraggables(13);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Загрузка конфигурации при монтировании
+  useEffect(() => {
+    const loadConfig = async () => {
+      setIsLoading(true);
+      const { config, error } = await loadGameConfig('example');
+      if (error) {
+        console.error('Ошибка загрузки конфигурации:', error);
+      } else if (config) {
+        setDroppables(config.droppables);
+      }
+      setIsLoading(false);
+    };
+    loadConfig();
+  }, []);
   function handleDragStart({ active }: DragStartEvent) {
     const activeDraggable = draggableItems.find(item => item.id === active.id);
 
-    Msg.notify(`Вы потащили элемент <b>${activeDraggable?.name}</b>`);
+    Notifications.notify(`Вы потащили элемент <b>${activeDraggable?.name}</b>`);
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {
@@ -38,10 +55,10 @@ function DndExample() {
     if (isDroppable(overDroppableKey)) {
       if (!isParent && droppables[overDroppableKey].items.length < maxItemsPerDroppable) {
 
-        Msg.notify(`<b>${activeDraggable?.name}</b> находится над <b>${overDroppable?.name}</b>`);
+        Notifications.notify(`<b>${activeDraggable?.name}</b> находится над <b>${overDroppable?.name}</b>`);
       } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
 
-        Msg.attention(`В <b>${overDroppable?.name}</b> больше нет места.`);
+        Notifications.attention(`В <b>${overDroppable?.name}</b> больше нет места.`);
       }
     }
   }
@@ -76,33 +93,48 @@ function DndExample() {
           if (!updates[overDroppableKey].items.includes(itemId)) {
             updates[overDroppableKey].items = [...updates[overDroppableKey].items, itemId];
           }
+          // Сохраняем конфигурацию после изменения
+          saveGameConfig('example', updates).catch(error => {
+            console.error('Ошибка сохранения:', error);
+          });
           return updates;
         });
 
-        Msg.success(`<b>${activeDraggable?.name}</b> перемещен в <b>${overDroppable.name}</b>`);
+        Notifications.success(`<b>${activeDraggable?.name}</b> перемещен в <b>${overDroppable.name}</b>`);
       } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
 
-        Msg.warn(`В <b>${overDroppable.name}</b> нет свободных мест. Перетащите элемент в другую область.`);
+        Notifications.warn(`В <b>${overDroppable.name}</b> нет свободных мест. Перетащите элемент в другую область.`);
       }
     } else if (currentDroppableKey) {
       // Если элемент перетащен не в droppable, удаляем его из текущего droppable
-      setDroppables(prev => ({
-        ...prev,
-        [currentDroppableKey]: {
-          ...prev[currentDroppableKey],
-          items: prev[currentDroppableKey].items.filter(id => id !== itemId)
-        },
-      }));
+      setDroppables(prev => {
+        const updates = {
+          ...prev,
+          [currentDroppableKey]: {
+            ...prev[currentDroppableKey],
+            items: prev[currentDroppableKey].items.filter(id => id !== itemId)
+          },
+        };
+        // Сохраняем конфигурацию после изменения
+        saveGameConfig('example', updates).catch(error => {
+          console.error('Ошибка сохранения:', error);
+        });
+        return updates;
+      });
 
-      Msg.success(`Вы убрали <b>${activeDraggable?.name}</b> из <b>${droppables[currentDroppableKey].name}</b>`);
+      Notifications.success(`Вы убрали <b>${activeDraggable?.name}</b> из <b>${droppables[currentDroppableKey].name}</b>`);
     } else if (!currentDroppableKey) {
       // Если элемент перетащен не в droppable, удаляем его из текущего droppable
 
-      Msg.notify(`Вы передумали перетаскивать элемент <b>${activeDraggable?.name}</b>`);
+      Notifications.notify(`Вы передумали перетаскивать элемент <b>${activeDraggable?.name}</b>`);
     }
   }
 
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
+
+  if (isLoading) {
+    return <div>Загрузка...</div>;
+  }
 
   return (
     <div>
@@ -145,7 +177,7 @@ function DndExample() {
           {
             !isMobile && (
               <div className={styles.notificationsContainer}>
-                <Msg.Notifications />
+                <Notifications.Container />
               </div>
             )
           }
@@ -154,7 +186,7 @@ function DndExample() {
       {
         isMobile && (
           <div className={styles.notificationsContainer}>
-            <Msg.Notifications />
+            <Notifications.Container />
           </div>
         )
       }

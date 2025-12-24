@@ -48,7 +48,7 @@ export function success(message: string, type: string = 'green', persistent: boo
   notify(message, type, persistent);
 }
 
-export function Notifications({ single = false }: { readonly single?: boolean }) {
+export function Container({ single = false }: { readonly single?: boolean }) {
   return (
     <div id="notifications" data-single={single.toString()}></div>
   );

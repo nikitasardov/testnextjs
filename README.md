@@ -96,6 +96,17 @@ SUPABASE_SERVICE_ROLE_KEY=ваш-service-role-ключ
 - Этот ключ обходит все политики безопасности Row Level Security (RLS)
 - Не коммитьте `.env` файл в git - он содержит секретные ключи
 
+### 2.1. Настройка базы данных для игр
+
+Для работы функционала сохранения игр необходимо создать таблицу в Supabase:
+
+1. Откройте Supabase Dashboard и выберите ваш проект
+2. Перейдите в раздел **SQL Editor** (в левом меню)
+3. Создайте новый запрос и скопируйте содержимое файла `supabase-migrations/create_game_configs_table.sql`
+4. Выполните SQL запрос (нажмите кнопку "Run" или `Ctrl+Enter`)
+
+Это создаст таблицу `game_configs` с необходимыми политиками безопасности (RLS), которая будет хранить конфигурации игр для каждого пользователя.
+
 ### 3. Запуск в режиме разработки
 
 ```bash
@@ -143,81 +154,70 @@ yarn start
 
 Приложение будет доступно на порту 3000 (или на порту, указанном в переменной окружения `PORT`).
 
-## Деплой на Vercel (Рекомендуется)
+## Деплой в Docker
 
-Vercel - это платформа от создателей Next.js, самая простая для деплоя.
+Проект использует Docker для деплоя в продакшене. Это обеспечивает изолированное окружение и простоту развертывания.
 
-### Быстрый деплой:
-
-1. Зайдите на [vercel.com](https://vercel.com)
-2. Войдите через GitHub
-3. Нажмите "New Project"
-4. Подключите репозиторий с вашим кодом
-5. В разделе "Environment Variables" добавьте:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (для работы страницы пользователей)
-6. Нажмите "Deploy"
-
-**Готово!** Через несколько минут приложение будет доступно по адресу вида: `your-app.vercel.app`
-
-### Автоматический деплой
-
-Vercel автоматически деплоит приложения при каждом push в main ветку.
-
-## Деплой на собственном сервере
-
-### Требования:
-- Node.js 20+ 
-- PM2 (процесс-менеджер) - опционально
-
-### Шаги:
+### Быстрый старт с Docker Compose:
 
 1. **Подготовка сервера:**
+   - Используйте скрипт `server-setup.sh` для автоматической настройки Ubuntu 24 сервера
+   - Скрипт установит Docker, Docker Compose и необходимые пакеты
+
+2. **Клонирование и настройка:**
 ```bash
-# Клонируем репозиторий
 git clone your-repo-url
-cd your-app
+cd testnextjs
 
-# Устанавливаем зависимости
-yarn install
-
-# Создаём .env файл
+# Создайте .env файл
 cp .env.example .env
-# Заполняем реальными значениями в .env
+# Заполните переменные окружения в .env
 ```
 
-2. **Сборка:**
+3. **Запуск приложения:**
 ```bash
-yarn build
+docker compose up -d --build
 ```
 
-3. **Запуск без PM2:**
+Приложение будет доступно на порту 3000.
+
+### Использование Docker Compose:
+
 ```bash
-yarn start
+# Запуск
+docker compose up -d
+
+# Просмотр логов
+docker compose logs -f app
+
+# Остановка
+docker compose down
+
+# Пересборка и перезапуск
+docker compose up -d --build
 ```
 
-4. **Запуск с PM2 (рекомендуется):**
-```bash
-# Установка PM2
-npm install -g pm2
+### Автодеплой через GitHub Actions
 
-# Запуск приложения через PM2
-pm2 start yarn --name "nextjs-app" -- start
+Проект настроен для автоматического деплоя при каждом push в ветку `master` или `main`.
 
-# Сохранение конфигурации для автозапуска
-pm2 save
-pm2 startup
-```
+**Как это работает:**
+1. При пуше в master/main ветку запускается GitHub Actions workflow
+2. Выполняются проверки кода (type-check, lint, build)
+3. Код автоматически копируется на сервер через SSH
+4. На сервере выполняется скрипт `deploy.sh`, который пересобирает и перезапускает контейнер
 
-PM2 будет:
-- Автоматически перезапускать приложение при сбоях
-- Сохранять логи
-- Обеспечивать нулевое время простоя
+**Настройка автодеплоя:**
+Подробные инструкции по настройке GitHub Actions автодеплоя находятся в файле [`GITHUB_ACTIONS_SETUP.md`](GITHUB_ACTIONS_SETUP.md).
+
+**Основные шаги:**
+1. Создайте SSH ключ на сервере
+2. Добавьте секреты в GitHub (SSH_PRIVATE_KEY, SERVER_HOST, SERVER_USER, SERVER_PATH и переменные окружения)
+3. Сделайте push в master ветку - деплой запустится автоматически
 
 ### Настройка Nginx как reverse proxy:
 
-Создайте файл `/etc/nginx/sites-available/your-app`:
+Создайте файл `/etc/nginx/sites-available/nextjs-app`:
 
 ```nginx
 server {
@@ -230,6 +230,9 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
 }
@@ -237,7 +240,7 @@ server {
 
 Активируйте конфигурацию:
 ```bash
-sudo ln -s /etc/nginx/sites-available/your-app /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/nextjs-app /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -249,47 +252,10 @@ sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
 
-## Docker деплой (опционально)
+### Подробная документация по деплою:
 
-### Dockerfile:
-
-Создайте файл `Dockerfile` в корне проекта:
-
-```dockerfile
-# Этап сборки
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY package*.json yarn.lock ./
-RUN yarn install --frozen-lockfile
-COPY . .
-RUN yarn build
-
-# Этап продакшена
-FROM node:22-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV production
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-
-EXPOSE 3000
-CMD ["yarn", "start"]
-```
-
-### Сборка и запуск:
-
-```bash
-# Сборка образа
-docker build -t nextjs-app .
-
-# Запуск контейнера
-docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=your-url \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key \
-  -e SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
-  nextjs-app
-```
+- [`DEPLOY.md`](DEPLOY.md) - полная инструкция по деплою на Ubuntu 24 с Docker
+- [`GITHUB_ACTIONS_SETUP.md`](GITHUB_ACTIONS_SETUP.md) - настройка автодеплоя через GitHub Actions
 
 ## Структура проекта
 
@@ -335,7 +301,8 @@ docker run -p 3000:3000 \
 - [Next.js документация](https://nextjs.org/docs)
 - [Supabase документация](https://supabase.com/docs)
 - [Material-UI документация](https://mui.com)
-- [Vercel документация](https://vercel.com/docs)
+- [Docker документация](https://docs.docker.com)
+- [GitHub Actions документация](https://docs.github.com/en/actions)
 
 ## Лицензия
 

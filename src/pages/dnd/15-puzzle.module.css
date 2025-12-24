@@ -114,3 +114,14 @@
     flex-direction: row;
     width: 100%;
 }
+
+/* Контейнер для уведомлений */
+.notificationsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}

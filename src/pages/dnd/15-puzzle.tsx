@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Button, useMediaQuery, useTheme } from '@mui/material';
-import { Draggable } from '../../components/Draggable';
-import { Droppable, isDroppable } from '../../components/Droppable';
-import { generateDroppables, generateDraggables, shuffleArray } from '../../utils/dnd-helpers';
-import * as Msg from '../../components/Notifications';
+import { Draggable } from '@/components/Draggable';
+import { Droppable, isDroppable } from '@/components/Droppable';
+import { generateDroppables, generateDraggables, shuffleArray } from '@/utils/dnd-helpers';
+import * as Notifications from '@/components/Notifications';
 import { withAuth } from "@/components/withAuth";
+import { saveGameConfig, loadGameConfig } from '@/utils/game-api';
 import styles from './15-puzzle.module.css';
 
 function DndGame15() {
@@ -31,6 +32,8 @@ function DndGame15() {
   const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
     generateDroppables(16, 'Ячейка ')
   );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNewGame, setIsNewGame] = useState(false);
 
   const draggableItems = generateDraggables(15, '');
 
@@ -106,9 +109,9 @@ function DndGame15() {
       if (filledCells === 15) {
         const solvable = isSolvable(board);
         if (solvable) {
-          Msg.success('Решение есть!');
+          Notifications.success('Решение есть!');
         } else {
-          Msg.warn('Решения нет. Перемешайте снова', 'red', true);
+          Notifications.warn('Решения нет. Перемешайте снова', 'red', true);
         }
       }
     } catch (error) {
@@ -137,18 +140,80 @@ function DndGame15() {
     });
 
     setDroppables(shuffledDroppablesState);
+    setIsNewGame(true);
     // Проверяем решаемость после перемешивания
     checkSolvability(shuffledDroppablesState);
   };
 
-  // Функция-заглушка для сохранения
-  const handleSave = () => {
-    console.log('сохранение...');
+  // Функция для сохранения конфигурации
+  const handleSave = async () => {
+    const { success, error } = await saveGameConfig('15-puzzle', droppables);
+    if (success) {
+      Notifications.success('Игра сохранена');
+    } else {
+      Notifications.warn(`Ошибка сохранения: ${error || 'Неизвестная ошибка'}`);
+    }
   };
 
-  // Инициализация случайного распределения элементов при загрузке
+  // Загрузка конфигурации при монтировании
   useEffect(() => {
-    shuffleItems();
+    const loadConfig = async () => {
+      setIsLoading(true);
+      const { config, error } = await loadGameConfig('15-puzzle');
+      if (error) {
+        console.error('Ошибка загрузки конфигурации:', error);
+        // Если ошибка загрузки, начинаем новую игру
+        const droppableKeys = Object.keys(droppables);
+        const shuffledDroppables = shuffleArray(droppableKeys);
+        const shuffledItems = shuffleArray(draggableItems.map(item => item.id));
+
+        const shuffledDroppablesState: { [key: string]: { name: string, items: string[] } } = {};
+
+        droppableKeys.forEach(key => {
+          shuffledDroppablesState[key] = { ...droppables[key], items: [] };
+        });
+
+        shuffledItems.forEach((itemId, index) => {
+          if (index < shuffledDroppables.length) {
+            shuffledDroppablesState[shuffledDroppables[index]].items.push(itemId);
+          }
+        });
+
+        setDroppables(shuffledDroppablesState);
+        setIsNewGame(true);
+        checkSolvability(shuffledDroppablesState);
+      } else if (config) {
+        // Успешно загружена конфигурация
+        setDroppables(config.droppables);
+        // Проверяем решаемость загруженной конфигурации
+        Notifications.success('Игра загружена');
+        setIsNewGame(false);
+        checkSolvability(config.droppables);
+      } else {
+        // Конфигурация не найдена, начинаем новую игру
+        const droppableKeys = Object.keys(droppables);
+        const shuffledDroppables = shuffleArray(droppableKeys);
+        const shuffledItems = shuffleArray(draggableItems.map(item => item.id));
+
+        const shuffledDroppablesState: { [key: string]: { name: string, items: string[] } } = {};
+
+        droppableKeys.forEach(key => {
+          shuffledDroppablesState[key] = { ...droppables[key], items: [] };
+        });
+
+        shuffledItems.forEach((itemId, index) => {
+          if (index < shuffledDroppables.length) {
+            shuffledDroppablesState[shuffledDroppables[index]].items.push(itemId);
+          }
+        });
+
+        setDroppables(shuffledDroppablesState);
+        setIsNewGame(true);
+        checkSolvability(shuffledDroppablesState);
+      }
+      setIsLoading(false);
+    };
+    loadConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -193,11 +258,26 @@ function DndGame15() {
     }
   }
 
+  // Показываем уведомление "новая игра" при первом переходе или после перемешивания
+  useEffect(() => {
+    if (!isLoading && isNewGame) {
+      Notifications.notify('Новая игра');
+      // Сбрасываем флаг после показа уведомления
+      const timer = setTimeout(() => {
+        setIsNewGame(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isNewGame, isLoading]);
+
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
+
+  if (isLoading) {
+    return <div>Загрузка...</div>;
+  }
 
   return (
     <>
-      <Msg.Notifications single={true} />
       <div className={`${styles.container} ${isMobile ? styles.containerMobile : ''}`}>
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className={`${styles.gameContainer} ${isMobile ? styles.gameContainerMobile : ''}`}>
@@ -263,6 +343,9 @@ function DndGame15() {
             })}
           </div>
         </DndContext>
+      </div>
+      <div className={styles.notificationsContainer}>
+        <Notifications.Container />
       </div>
     </>
   );
