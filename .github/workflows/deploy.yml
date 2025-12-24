@@ -64,6 +64,23 @@ jobs:
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Test SSH connection
+        run: |
+          echo "Проверка SSH подключения..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "echo 'SSH подключение успешно!'"
+
+      - name: Prepare server directory
+        run: |
+          echo "Подготовка директории на сервере..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
+            set -e
+            mkdir -p ${{ secrets.SERVER_PATH }}
+            cd ${{ secrets.SERVER_PATH }}
+            echo "Директория готова: \$(pwd)"
+          EOF
+
       - name: Create .env file
         run: |
           cat > .env << EOF
@@ -75,32 +92,69 @@ jobs:
       - name: Copy files to server
         timeout-minutes: 10
         run: |
+          echo "Копирование файлов на сервер..."
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.next' \
             --exclude '.git' \
             --exclude '.env' \
             --exclude '.github' \
-            -e "ssh -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}
+            --exclude '*.log' \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
+            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }} || {
+            echo "❌ Ошибка rsync (код: $?)"
+            echo "Проверьте:"
+            echo "1. Существует ли директория ${{ secrets.SERVER_PATH }} на сервере"
+            echo "2. Есть ли права на запись в эту директорию"
+            echo "3. Правильность SERVER_USER и SERVER_PATH в Secrets"
+            exit 1
+          }
+          echo "✅ Файлы успешно скопированы"
 
       - name: Deploy on server
         timeout-minutes: 15
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
             set -e
-            cd ${{ secrets.SERVER_PATH }}
-            
-            # Создаем .env файл на сервере
+            set -x  # Включить отладочный вывод
+
+            echo "Переход в директорию проекта..."
+            cd ${{ secrets.SERVER_PATH }} || {
+              echo "❌ Ошибка: директория ${{ secrets.SERVER_PATH }} не существует!"
+              exit 1
+            }
+
+            echo "Текущая директория: \$(pwd)"
+            echo "Содержимое директории:"
+            ls -la
+
+            echo "Создание .env файла..."
             cat > .env << 'ENVEOF'
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             ENVEOF
-            
-            # Запускаем деплой скрипт
+
+            echo "Проверка наличия deploy.sh..."
+            if [ ! -f deploy.sh ]; then
+              echo "❌ Ошибка: файл deploy.sh не найден!"
+              echo "Содержимое директории:"
+              ls -la
+              exit 1
+            fi
+
+            echo "Установка прав на выполнение для deploy.sh..."
             chmod +x deploy.sh
-            ./deploy.sh
+
+            echo "Запуск деплой скрипта..."
+            ./deploy.sh || {
+              echo "❌ Ошибка при выполнении deploy.sh (код: \$?)"
+              echo "Проверьте логи выше для деталей"
+              exit 1
+            }
+
+            echo "✅ Деплой на сервере завершен успешно"
           EOF
 
       - name: Health check
