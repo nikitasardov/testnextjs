@@ -2,7 +2,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Button, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { keyframes } from '@emotion/react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+
+const shimmerAnimation = keyframes`
+  0% {
+    background-position: 300% 0;
+  }
+  100% {
+    background-position: -300% 0;
+  }
+`;
 import { Draggable } from '@/components/Draggable';
 import { Droppable, isDroppable } from '@/components/Droppable';
 import { generateDroppables, generateDraggables, shuffleArray } from '@/utils/dnd-helpers';
@@ -453,7 +463,7 @@ function Dnd15Puzzle() {
                     ...(isHintLoading && {
                       background: 'linear-gradient(90deg, #9c27b0 0%, #ba68c8 25%, #9c27b0 50%, #ba68c8 75%, #9c27b0 100%)',
                       backgroundSize: '300% 100%',
-                      animation: 'shimmer-gray 3s linear infinite',
+                      animation: `${shimmerAnimation} 3s linear infinite`,
                     }),
                   }}
                 >

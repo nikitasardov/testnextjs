@@ -15,6 +15,7 @@ services:
       # Замените на реальные значения или используйте .env файл
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - VSEGPT_API_KEY=${VSEGPT_API_KEY}
       - VSEGPT_MODEL=${VSEGPT_MODEL}
     # Перезапуск контейнера при сбое
