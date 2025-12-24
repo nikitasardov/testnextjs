@@ -15,6 +15,14 @@ echo -e "${BLUE}=========================================="
 echo "Начало деплоя Next.js приложения"
 echo "==========================================${NC}"
 
+# Показываем информацию о текущем коммите (если есть git)
+if command -v git &> /dev/null && [ -d .git ]; then
+    echo "Текущий коммит: $(git rev-parse --short HEAD 2>/dev/null || echo 'неизвестно')"
+    echo "Ветка: $(git branch --show-current 2>/dev/null || echo 'неизвестно')"
+    echo "Последний коммит: $(git log -1 --format='%h - %s' 2>/dev/null || echo 'неизвестно')"
+    echo ""
+fi
+
 # Проверка наличия .env файла
 if [ ! -f .env ]; then
     echo -e "${RED}Ошибка: файл .env не найден!${NC}"
@@ -35,21 +43,44 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}[1/5] Остановка текущего контейнера...${NC}"
-docker compose down || true
+echo -e "${GREEN}[1/5] Остановка и удаление текущего контейнера...${NC}"
+# Останавливаем и удаляем контейнеры, сети, но не volumes
+docker compose down --remove-orphans || true
 
-echo -e "${GREEN}[2/5] Очистка старых образов...${NC}"
-# Очищаем только неиспользуемые образы, не трогая запущенные контейнеры
-docker image prune -f
+# Принудительно удаляем контейнер, если он все еще существует
+docker rm -f nextjs-app 2>/dev/null || true
 
-echo -e "${GREEN}[3/5] Сборка нового образа...${NC}"
-docker compose build --no-cache
+echo -e "${GREEN}[2/5] Удаление старого образа приложения...${NC}"
+# Получаем имя образа из docker-compose
+COMPOSE_PROJECT_NAME=$(basename $(pwd) | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+IMAGE_NAME="${COMPOSE_PROJECT_NAME}-app"
 
-echo -e "${GREEN}[4/5] Запуск контейнера...${NC}"
-docker compose up -d
+# Удаляем все версии образа с таким именем
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${COMPOSE_PROJECT_NAME}" | xargs -r docker rmi -f 2>/dev/null || true
+
+# Альтернативный способ - удалить образ по тегу из docker-compose
+docker compose down --rmi local 2>/dev/null || true
+
+echo -e "${GREEN}[3/5] Сборка нового образа (без кэша)...${NC}"
+# Собираем образ заново без использования кэша
+docker compose build --no-cache --pull
+
+echo -e "${GREEN}[4/5] Запуск нового контейнера...${NC}"
+# Принудительно пересоздаем контейнер, даже если конфигурация не изменилась
+docker compose up -d --force-recreate --remove-orphans
 
 echo -e "${GREEN}[5/5] Ожидание запуска приложения...${NC}"
 sleep 5
+
+# Показываем информацию о запущенном контейнере
+echo "Информация о контейнере:"
+docker compose ps
+echo ""
+echo "ID образа контейнера:"
+docker inspect nextjs-app --format='{{.Image}}' 2>/dev/null || echo "Контейнер еще не запущен"
+echo ""
+echo "Время создания контейнера:"
+docker inspect nextjs-app --format='{{.Created}}' 2>/dev/null || echo "Контейнер еще не запущен"
 
 # Проверка статуса контейнера
 if docker compose ps | grep -q "Up"; then
