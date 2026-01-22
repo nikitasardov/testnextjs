@@ -17,10 +17,12 @@ export function getMessages(locale: string | undefined, namespaces?: Namespace[]
   const all = getAllMessages(locale);
   if (!namespaces || namespaces.length === 0) return all;
 
-  return namespaces.reduce<Partial<Messages>>((acc, ns) => {
-    acc[ns] = all[ns];
-    return acc;
-  }, {});
+  const result: Partial<Messages> = {};
+  for (const ns of namespaces) {
+    // Используем type assertion для обхода readonly свойств
+    (result as Record<Namespace, Messages[Namespace]>)[ns] = all[ns];
+  }
+  return result;
 }
 
 
