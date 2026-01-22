@@ -17,6 +17,8 @@ import {
 } from '@mui/material';
 // клиент Supabase
 import { supabase } from '@/utils/supabase';
+// локализация
+import { useTranslations } from 'next-intl';
 
 // Интерфейс описывает структуру props (свойств) компонента
 // readonly - props не могут быть изменены внутри компонента (только для чтения)
@@ -26,6 +28,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ open, onClose }: AuthModalProps) {
+    const t = useTranslations('auth');
     // Создаём состояния компонента с помощью хука useState
     const [tab, setTab] = useState(0);           // Активная вкладка (0 - вход, 1 - регистрация)
     const [email, setEmail] = useState('');      // Email пользователя
@@ -51,7 +54,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     const handleSignUp = async () => {
         // Валидация: проверяем, что поля заполнены
         if (!email || !password) {
-            setErrorMsg('Заполните все поля');
+            setErrorMsg(t('fillAllFields'));
             return;  // Выходим из функции, если не заполнено
         }
 
@@ -77,12 +80,12 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
             // Если регистрация успешна и есть данные пользователя
             if (data.user) {
-                setSuccessMsg('Регистрация успешна! Проверьте почту для подтверждения.');
+                setSuccessMsg(t('registrationSuccess'));
             }
         } catch (err) {
             // Обработка ошибки
             // err instanceof Error - проверка, является ли err объектом Error
-            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при регистрации');
+            setErrorMsg(err instanceof Error ? err.message : t('registrationError'));
         } finally {
             // Независимо от результата, отключаем загрузку
             setLoading(false);
@@ -92,7 +95,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     // Функция входа в систему (аналогична регистрации)
     const handleSignIn = async () => {
         if (!email || !password) {
-            setErrorMsg('Заполните все поля');
+            setErrorMsg(t('fillAllFields'));
             return;
         }
 
@@ -109,7 +112,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             if (error) throw error;
 
             if (data.user) {
-                setSuccessMsg('Вход выполнен успешно!');
+                setSuccessMsg(t('loginSuccess'));
                 // setTimeout - устанавливаем задержку перед выполнением функции
                 // Используем для того, чтобы пользователь увидел сообщение об успехе
                 setTimeout(() => {
@@ -120,7 +123,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 }, 1000);  // 1000 миллисекунд = 1 секунда
             }
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при входе');
+            setErrorMsg(err instanceof Error ? err.message : t('loginError'));
         } finally {
             setLoading(false);
         }
@@ -129,7 +132,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     // Функция восстановления пароля
     const handleResetPassword = async () => {
         if (!email) {
-            setErrorMsg('Введите email');
+            setErrorMsg(t('enterEmail'));
             return;
         }
 
@@ -145,9 +148,9 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
             if (error) throw error;
 
-            setSuccessMsg('Письмо с инструкциями по восстановлению пароля отправлено на ваш email.');
+            setSuccessMsg(t('resetPasswordEmailSent'));
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при отправке письма');
+            setErrorMsg(err instanceof Error ? err.message : t('resetPasswordError'));
         } finally {
             setLoading(false);
         }
@@ -164,7 +167,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
             <DialogTitle>
                 {isResetMode
                     ? (
-                        <Typography variant="h6">Восстановление пароля</Typography>
+                        <Typography variant="h6">{t('resetPassword')}</Typography>
                     )
                     : (
                         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -174,8 +177,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                             <Tabs value={tab} onChange={handleTabChange}>
                                 {/* value - активная вкладка
                                 onChange - вызывается при переключении */}
-                                <Tab label="Вход" />
-                                <Tab label="Регистрация" />
+                                <Tab label={t('login')} />
+                                <Tab label={t('signUp')} />
                             </Tabs>
                         </Box>
                     )}
@@ -195,7 +198,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
                     {successMsg && (
                         <Alert severity="success" sx={{ mb: 2 }}>
-                            {successMsg }
+                            {successMsg}
                         </Alert>
                     )}
 
@@ -203,7 +206,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                     <TextField
                         autoFocus                    // Автоматический фокус при открытии
                         margin="dense"                      // Небольшие отступы
-                        label="Email"               // Подсказка в поле
+                        label={t('email')}               // Подсказка в поле
                         type="email"                // Тип поля (для валидации браузера)
                         fullWidth                   // Занимает всю ширину
                         variant="outlined"          // Вариант поля (с границей)
@@ -217,7 +220,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                     {!isResetMode && (
                         <TextField
                             margin="dense"
-                            label="Пароль"
+                            label={t('password')}
                             type="password"             // Текст скрывается звёздочками
                             fullWidth
                             variant="outlined"
@@ -242,7 +245,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                                 disabled={loading}
                                 sx={{ textTransform: 'none' }}
                             >
-                                Забыли пароль?
+                                {t('forgotPassword')}
                             </Button>
                         </Box>
                     )}
@@ -253,19 +256,19 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                         <Typography variant="caption" color="text.secondary">
                             {/* variant - вариант текста (caption - самый мелкий)
                                 color - цвет текста */}
-                            Войдите в свой аккаунт
+                            {t('enterAccount')}
                         </Typography>
                     )}
 
                     {tab === 1 && (
                         <Typography variant="caption" color="text.secondary">
-                            Создайте новый аккаунт
+                            {t('createAccount')}
                         </Typography>
                     )}
 
                     {isResetMode && (
                         <Typography variant="caption" color="text.secondary">
-                            Введите email, на который будет отправлена ссылка для восстановления пароля
+                            {t('resetHint')}
                         </Typography>
                     )}
                 </Box>
@@ -286,11 +289,11 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                         }}
                         disabled={loading}
                     >
-                        Назад
+                        {t('back')}
                     </Button>
                 ) : (
                     <Button onClick={onClose} disabled={loading}>
-                        Отмена
+                        {t('cancel')}
                     </Button>
                 )}
 
@@ -314,11 +317,11 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                     {/* IIFE (Immediately Invoked Function Expression) - функция, вызываемая сразу
                         Используется для условного возврата текста */}
                     {(() => {
-                        if (loading) return 'Загрузка...';
+                        if (loading) return t('loading');
                         // Если режим восстановления - показываем "Отправить"
-                        if (isResetMode) return 'Отправить';
+                        if (isResetMode) return t('send');
                         // Тернарный оператор для выбора текста кнопки
-                        return tab === 0 ? 'Войти' : 'Зарегистрироваться';
+                        return tab === 0 ? t('login') : t('signUp');
                     })()}
                     {/* Двойные скобки ()() - вызов функции сразу */}
                 </Button>

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
+import { getLocaleFromRequest } from "@/utils/i18n-api";
+import { getAllMessages } from "@/locales/loadMessages";
 
 type GameConfig = {
     droppables: { [key: string]: { name: string, items: string[] } };
@@ -14,25 +16,28 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
+    const locale = getLocaleFromRequest(req);
+    const messages = getAllMessages(locale);
+
     if (req.method !== "GET") {
-        return res.status(405).json({ config: null, error: "Method not allowed" });
+        return res.status(405).json({ config: null, error: messages.api.methodNotAllowed });
     }
 
     const { gameType } = req.query;
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ config: null, error: "Unauthorized" });
+        return res.status(401).json({ config: null, error: messages.api.unauthorized });
     }
 
     const token = authHeader.replace('Bearer ', '');
 
     if (!gameType || typeof gameType !== 'string') {
-        return res.status(400).json({ config: null, error: "gameType is required" });
+        return res.status(400).json({ config: null, error: messages.api.gameTypeRequired });
     }
 
     if (gameType !== 'example' && gameType !== '15-puzzle') {
-        return res.status(400).json({ config: null, error: "Invalid gameType" });
+        return res.status(400).json({ config: null, error: messages.api.invalidGameType });
     }
 
     try {
@@ -43,7 +48,7 @@ export default async function handler(
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ config: null, error: "Invalid token" });
+            return res.status(401).json({ config: null, error: messages.api.invalidToken });
         }
 
         // Загружаем конфигурацию игры
@@ -69,7 +74,7 @@ export default async function handler(
     } catch (error) {
         return res.status(500).json({
             config: null,
-            error: error instanceof Error ? error.message : "Internal server error",
+            error: error instanceof Error ? error.message : messages.api.internalError,
         });
     }
 }

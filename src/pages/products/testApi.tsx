@@ -1,6 +1,7 @@
 import { Typography, Button, TextField, Box, Alert } from "@mui/material";
 import axios from "axios";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface ProductType {
     id: number;
@@ -14,6 +15,8 @@ interface ApiResponse {
 }
 
 export default function TestApi() {
+    const t = useTranslations('products');
+    const tCommon = useTranslations('common');
     const [productId, setProductId] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
     const [result, setResult] = useState<ApiResponse | null>(null);
@@ -21,7 +24,7 @@ export default function TestApi() {
 
     const handleTestAPI = async () => {
         if (!productId.trim()) {
-            setError('Введите ID товара');
+            setError(t('enterId'));
             return;
         }
 
@@ -54,7 +57,7 @@ export default function TestApi() {
                 setError(errorData.error || err.message);
                 setResult(null);
             } else {
-                setError(err instanceof Error ? err.message : 'Ошибка при запросе к API');
+                setError(err instanceof Error ? err.message : t('requestError'));
                 setResult(null);
             }
             console.error('Ошибка запроса:', err);
@@ -66,11 +69,11 @@ export default function TestApi() {
     return (
         <Box p={3}>
             <Typography variant="h4" component="h1" gutterBottom>
-                Тест API запроса товара
+                {t('testApiTitle')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
                 <TextField
-                    label="ID товара"
+                    label={t('productId')}
                     value={productId}
                     onChange={(e) => {
                         const value = e.target.value;
@@ -78,7 +81,7 @@ export default function TestApi() {
                             setProductId(value);
                         }
                     }}
-                    placeholder="Введите ID товара"
+                    placeholder={t('enterId')}
                     type="text"
                     inputMode="numeric"
                     sx={{ minWidth: 200 }}
@@ -88,7 +91,7 @@ export default function TestApi() {
                     variant="contained"
                     disabled={loading}
                 >
-                    {loading ? 'Загрузка...' : 'Запросить'}
+                    {loading ? tCommon('loading') : t('request')}
                 </Button>
             </Box>
 
@@ -101,7 +104,7 @@ export default function TestApi() {
             {result?.product && (
                 <Box>
                     <Typography variant="h6" gutterBottom>
-                        Данные товара:
+                        {t('productData')}:
                     </Typography>
                     <Box
                         component="pre"

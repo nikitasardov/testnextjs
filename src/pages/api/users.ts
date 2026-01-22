@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { getLocaleFromRequest } from "@/utils/i18n-api";
+import { getAllMessages } from "@/locales/loadMessages";
 
 type User = {
     id: string;
@@ -53,8 +55,11 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
+    const locale = getLocaleFromRequest(req);
+    const messages = getAllMessages(locale);
+
     if (req.method !== "GET") {
-        return res.status(405).json({ users: [], error: "Method not allowed" });
+        return res.status(405).json({ users: [], error: messages.api.methodNotAllowed });
     }
 
     try {
@@ -66,7 +71,7 @@ export default async function handler(
         if (!supabaseUrl || !supabaseServiceKey) {
             return res.status(500).json({
                 users: [],
-                error: "Supabase configuration is missing",
+                error: messages.api.internalError,
             });
         }
 
@@ -100,7 +105,7 @@ export default async function handler(
     } catch (error) {
         return res.status(500).json({
             users: [],
-            error: error instanceof Error ? error.message : "Unknown error",
+            error: error instanceof Error ? error.message : messages.api.unknownError,
         });
     }
 }

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
+import { getLocaleFromRequest } from "@/utils/i18n-api";
+import { getAllMessages } from "@/locales/loadMessages";
 
 type Data = {
     success: boolean;
@@ -10,25 +12,28 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
+    const locale = getLocaleFromRequest(req);
+    const messages = getAllMessages(locale);
+
     if (req.method !== "POST") {
-        return res.status(405).json({ success: false, error: "Method not allowed" });
+        return res.status(405).json({ success: false, error: messages.api.methodNotAllowed });
     }
 
     const { gameType, droppables } = req.body;
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: "Unauthorized" });
+        return res.status(401).json({ success: false, error: messages.api.unauthorized });
     }
 
     const token = authHeader.replace('Bearer ', '');
 
     if (!gameType || !droppables) {
-        return res.status(400).json({ success: false, error: "gameType and droppables are required" });
+        return res.status(400).json({ success: false, error: messages.api.gameTypeAndDroppablesRequired });
     }
 
     if (gameType !== 'example' && gameType !== '15-puzzle') {
-        return res.status(400).json({ success: false, error: "Invalid gameType" });
+        return res.status(400).json({ success: false, error: messages.api.invalidGameType });
     }
 
     try {
@@ -39,7 +44,7 @@ export default async function handler(
         const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ success: false, error: "Invalid token" });
+            return res.status(401).json({ success: false, error: messages.api.invalidToken });
         }
 
         // Создаем клиент с токеном пользователя для работы с RLS
@@ -69,7 +74,7 @@ export default async function handler(
     } catch (error) {
         return res.status(500).json({
             success: false,
-            error: error instanceof Error ? error.message : "Internal server error",
+            error: error instanceof Error ? error.message : messages.api.internalError,
         });
     }
 }

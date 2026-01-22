@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { withAuth } from "@/components/withAuth";
+import { useTranslations } from "next-intl";
 
 interface User {
     id: string;
@@ -9,6 +10,8 @@ interface User {
 }
 
 function Users() {
+    const t = useTranslations('users');
+    const tCommon = useTranslations('common');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -22,22 +25,22 @@ function Users() {
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || "Ошибка при загрузке пользователей");
+                    throw new Error(data.error || t('loadError'));
                 }
 
                 setUsers(data.users || []);
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Неизвестная ошибка");
+                setError(err instanceof Error ? err.message : t('unknownError'));
             } finally {
                 setLoading(false);
             }
         }
 
         fetchUsers();
-    }, []);
+    });
 
     const formatDate = (dateString: string) => {
-        if (!dateString) return "Никогда";
+        if (!dateString) return tCommon('never');
         const date = new Date(dateString);
         return date.toLocaleString("ru-RU", {
             year: "numeric",
@@ -52,31 +55,31 @@ function Users() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black py-8 px-4">
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-4xl font-bold mb-8 text-black dark:text-zinc-50">
-                    Пользователи системы
+                    {t('title')}
                 </h1>
 
                 {loading && (
                     <div className="text-center py-8">
-                        <p className="text-zinc-600 dark:text-zinc-400">Загрузка...</p>
+                        <p className="text-zinc-600 dark:text-zinc-400">{t('loading')}</p>
                     </div>
                 )}
 
                 {error && (
                     <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
-                        <p>Ошибка: {error}</p>
+                        <p>{t('errorPrefix')}: {error}</p>
                     </div>
                 )}
 
                 {!loading && !error && (
                     <>
                         <div className="mb-4 text-zinc-600 dark:text-zinc-400">
-                            Всего пользователей: {users.length}
+                            {t('totalUsers')}: {users.length}
                         </div>
 
                         {users.length === 0 ? (
                             <div className="text-center py-8">
                                 <p className="text-zinc-600 dark:text-zinc-400">
-                                    Пользователи не найдены
+                                    {t('usersNotFound')}
                                 </p>
                             </div>
                         ) : (
@@ -89,24 +92,24 @@ function Users() {
                                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                             <div className="flex-1">
                                                 <h3 className="text-lg font-semibold text-black dark:text-zinc-50 mb-2">
-                                                    {user.email || "Без email"}
+                                                    {user.email || tCommon('withoutEmail')}
                                                 </h3>
                                                 <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
                                                     <p>
-                                                        <span className="font-medium">ID:</span>{" "}
+                                                        <span className="font-medium">{tCommon('id')}:</span>{" "}
                                                         <span className="font-mono text-xs">
                                                             {user.id}
                                                         </span>
                                                     </p>
                                                     <p>
                                                         <span className="font-medium">
-                                                            Дата регистрации:
+                                                            {t('registrationDate')}:
                                                         </span>{" "}
                                                         {formatDate(user.created_at)}
                                                     </p>
                                                     <p>
                                                         <span className="font-medium">
-                                                            Последний вход:
+                                                            {t('lastSignIn')}:
                                                         </span>{" "}
                                                         {formatDate(user.last_sign_in_at || "")}
                                                     </p>

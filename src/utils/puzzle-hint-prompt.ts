@@ -1,4 +1,5 @@
 import { DroppablesConfig } from './game-api';
+import type { Messages } from '@/locales/messages';
 
 /**
  * Преобразует состояние droppables в массив board для проверки решаемости
@@ -59,10 +60,11 @@ export function isSolvable(board: number[]): boolean {
 /**
  * Преобразует массив массивов 4x4 в текстовое представление для промпта
  * @param board - массив 4x4, где 0 - пустая ячейка
+ * @param llmMessages - сообщения для локализации
  * @returns текстовое представление доски
  */
-function formatBoardState(board: number[][]): string {
-    let boardText = 'Текущее состояние доски (4x4):\n';
+function formatBoardState(board: number[][], llmMessages: Messages['llm']): string {
+    let boardText = `${llmMessages.hintPromptBoardState}\n`;
     for (let row = 0; row < 4; row++) {
         const rowValues: string[] = [];
         for (let col = 0; col < 4; col++) {
@@ -75,48 +77,49 @@ function formatBoardState(board: number[][]): string {
         }
         boardText += rowValues.join(' | ') + '\n';
     }
-    boardText += '\n(где _ обозначает пустую ячейку)\n';
+    boardText += `\n${llmMessages.hintPromptEmptyCell}\n`;
     return boardText;
 }
 
 /**
  * Генерирует промпт для LLM для получения подсказки по игре 15-puzzle
  * @param droppables - текущее состояние игры
+ * @param llmMessages - сообщения для локализации
  * @returns промпт для отправки в LLM
  */
-export function generateHintPrompt(droppables: DroppablesConfig): string {
+export function generateHintPrompt(droppables: DroppablesConfig, llmMessages: Messages['llm']): string {
     // Преобразуем droppables в массив массивов
     const board = getBoardState(droppables);
     const board4x4: number[][] = [];
     for (let row = 0; row < 4; row++) {
         board4x4.push(board.slice(row * 4, (row + 1) * 4));
     }
-    const boardText = formatBoardState(board4x4);
+    const boardText = formatBoardState(board4x4, llmMessages);
 
-    const prompt = `Ты помощник для игры "15-puzzle". Порекомендуй ТРИ следующих хода подряд.
+    const prompt = `${llmMessages.hintPromptTitle}
 
-Правила: доска 4×4, 15 плиток (1-15), одна ячейка пустая (_). Плитку можно переместить только в соседнюю пустую ячейку. Цель: расположить плитки 1-15 слева направо, сверху вниз.
+${llmMessages.hintPromptRules}
 
 ${boardText}
 
-Алгоритм:
-1. Найди пустую ячейку (0) и плитки, соседствующие с ней (сверху/снизу/слева/справа) - это доступные ходы для первого шага. Выбери первый оптимальный ход.
-2. Мысленно выполни первый ход: перемести выбранную плитку в пустую ячейку. Пустая ячейка окажется на месте этой плитки.
-3. Определи новое положение пустой ячейки и найди соседние плитки - это доступные ходы для второго шага. Выбери второй оптимальный ход.
-4. Мысленно выполни второй ход: перемести выбранную плитку в пустую ячейку. Пустая ячейка окажется на месте плитки, которую ты переместил.
-5. Определи новое положение пустой ячейки и найди соседние плитки - это доступные ходы для третьего шага. Выбери третий оптимальный ход.
+${llmMessages.hintPromptAlgorithm}
+${llmMessages.hintPromptAlgorithm1}
+${llmMessages.hintPromptAlgorithm2}
+${llmMessages.hintPromptAlgorithm3}
+${llmMessages.hintPromptAlgorithm4}
+${llmMessages.hintPromptAlgorithm5}
 
-Требования:
-- Плитку можно переместить ТОЛЬКО если она соседствует с пустой ячейкой
-- После трех ходов доска НЕ должна вернуться в начальное состояние
-- Не создавай циклы (туда-сюда одной плиткой)
+${llmMessages.hintPromptRequirements}
+${llmMessages.hintPromptRequirements1}
+${llmMessages.hintPromptRequirements2}
+${llmMessages.hintPromptRequirements3}
 
-Формат ответа: "1. Переместите плитку [номер] [направление], 2. Переместите плитку [номер] [направление], 3. Переместите плитку [номер] [направление]"
-Пример: "1. Переместите плитку 8 вверх, 2. Переместите плитку 3 вправо, 3. Переместите плитку 1 вниз"
+${llmMessages.hintPromptFormat}
+${llmMessages.hintPromptExample}
 
-ЗАПРЕЩЕНО: рассуждения, перечисление данных, объяснения, комментарии.
+${llmMessages.hintPromptForbidden}
 
-Ответь СТРОГО ТОЛЬКО одной фразой с тремя ходами. Ничего больше.`;
+${llmMessages.hintPromptAnswer}`;
 
     return prompt;
 }

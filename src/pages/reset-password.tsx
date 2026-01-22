@@ -15,8 +15,12 @@ import {
 } from '@mui/material';
 // клиент Supabase
 import { supabase } from '@/utils/supabase';
+// локализация
+import { useTranslations } from 'next-intl';
 
 export default function ResetPassword() {
+    const t = useTranslations('auth');
+    const tCommon = useTranslations('common');
     const router = useRouter();
     // Состояния компонента
     const [password, setPassword] = useState(''); // Новый пароль
@@ -40,7 +44,7 @@ export default function ResetPassword() {
 
                 // Проверяем, что это токен восстановления пароля
                 if (type !== 'recovery' || !accessToken || !refreshToken) {
-                    setErrorMsg('Недействительная или истекшая ссылка для восстановления пароля.');
+                    setErrorMsg(t('invalidLink'));
                     setLoading(false);
                     return;
                 }
@@ -58,7 +62,7 @@ export default function ResetPassword() {
                 // Если сессия установлена успешно, токен валиден
                 setIsValidToken(true);
             } catch (err) {
-                setErrorMsg(err instanceof Error ? err.message : 'Ошибка при обработке ссылки восстановления пароля');
+                setErrorMsg(err instanceof Error ? err.message : t('linkError'));
             } finally {
                 setLoading(false);
             }
@@ -66,25 +70,25 @@ export default function ResetPassword() {
 
         // Вызываем функцию обработки
         handleResetPassword();
-    }, []); // Пустой массив зависимостей - выполнится только при монтировании
+    }, [t]); // Включаем t в зависимости, так как используется в обработке ошибок
 
     // Функция обновления пароля
     const handleUpdatePassword = async () => {
         // Валидация полей
         if (!password || !confirmPassword) {
-            setErrorMsg('Заполните все поля');
+            setErrorMsg(t('fillAllFields'));
             return;
         }
 
         // Проверка совпадения паролей
         if (password !== confirmPassword) {
-            setErrorMsg('Пароли не совпадают');
+            setErrorMsg(t('passwordsNotMatch'));
             return;
         }
 
         // Проверка минимальной длины пароля
         if (password.length < 6) {
-            setErrorMsg('Пароль должен содержать минимум 6 символов');
+            setErrorMsg(t('passwordMinLength'));
             return;
         }
 
@@ -101,14 +105,14 @@ export default function ResetPassword() {
             if (error) throw error;
 
             // Пароль успешно обновлен
-            setSuccessMsg('Пароль успешно изменен! Вы будете перенаправлены на главную страницу...');
+            setSuccessMsg(t('passwordChanged'));
 
             // Перенаправляем на главную страницу через 2 секунды
             setTimeout(() => {
                 router.push('/');
             }, 2000);
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : 'Ошибка при изменении пароля');
+            setErrorMsg(err instanceof Error ? err.message : t('changePasswordError'));
         } finally {
             setLoading(false);
         }
@@ -128,7 +132,7 @@ export default function ResetPassword() {
                     }}
                 >
                     <CircularProgress />
-                    <Typography sx={{ mt: 2 }}>Проверка ссылки восстановления пароля...</Typography>
+                    <Typography sx={{ mt: 2 }}>{t('checkingLink')}</Typography>
                 </Box>
             </Container>
         );
@@ -141,14 +145,14 @@ export default function ResetPassword() {
                 <Box sx={{ mt: 4 }}>
                     <Paper sx={{ p: 3 }}>
                         <Alert severity="error" sx={{ mb: 2 }}>
-                            {errorMsg || 'Недействительная или истекшая ссылка для восстановления пароля.'}
+                            {errorMsg || t('invalidLink')}
                         </Alert>
                         <Button
                             variant="contained"
                             fullWidth
                             onClick={() => router.push('/')}
                         >
-                            Вернуться на главную
+                            {tCommon('backToHome')}
                         </Button>
                     </Paper>
                 </Box>
@@ -162,10 +166,10 @@ export default function ResetPassword() {
             <Box sx={{ mt: 4 }}>
                 <Paper sx={{ p: 3 }}>
                     <Typography variant="h5" component="h1" gutterBottom>
-                        Восстановление пароля
+                        {t('resetPasswordTitle')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Введите новый пароль для вашего аккаунта
+                        {t('resetPasswordDescription')}
                     </Typography>
 
                     {/* Сообщение об ошибке */}
@@ -185,7 +189,7 @@ export default function ResetPassword() {
                     {/* Поле ввода нового пароля */}
                     <TextField
                         margin="dense"
-                        label="Новый пароль"
+                        label={t('newPassword')}
                         type="password"
                         fullWidth
                         variant="outlined"
@@ -199,7 +203,7 @@ export default function ResetPassword() {
                     {/* Поле подтверждения пароля */}
                     <TextField
                         margin="dense"
-                        label="Подтвердите пароль"
+                        label={t('confirmPassword')}
                         type="password"
                         fullWidth
                         variant="outlined"
@@ -217,7 +221,7 @@ export default function ResetPassword() {
                         disabled={loading}
                         startIcon={loading ? <CircularProgress size={20} /> : null}
                     >
-                        {loading ? 'Изменение пароля...' : 'Изменить пароль'}
+                        {loading ? t('changingPassword') : t('changePassword')}
                     </Button>
                 </Paper>
             </Box>

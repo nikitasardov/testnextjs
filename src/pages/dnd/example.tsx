@@ -7,22 +7,35 @@ import * as Notifications from '@/components/Notifications';
 import { generateDroppables, generateDraggables } from '@/utils/dnd-helpers';
 import { withAuth } from '@/components/withAuth';
 import { saveGameConfig, loadGameConfig } from '@/utils/game-api';
+import { useTranslations } from 'next-intl';
 import styles from './example.module.css';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 function DndExample() {
-  const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
-    generateDroppables(4)
-  );
+  const t = useTranslations('game');
+  const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(() => {
+    return generateDroppables(4, ''); // Пустой префикс, название будет вычисляться при рендеринге
+  });
   const [isLoading, setIsLoading] = useState(true);
   const loadConfigRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxItemsPerDroppable = 3;
-  const draggableItems = generateDraggables(13);
+  const draggableItems = generateDraggables(13, ''); // Пустой префикс, название будет вычисляться при рендеринге
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Функции для получения локализованных названий
+  const getAreaName = (droppableId: string): string => {
+    const index = Number.parseInt(droppableId.replace('droppable', ''), 10);
+    return `${t('areaPrefix')} ${index}`;
+  };
+
+  const getElementName = (draggableId: string): string => {
+    const index = Number.parseInt(draggableId.replace('draggable', ''), 10);
+    return `${t('elementPrefix')} ${index}`;
+  };
 
   // Загрузка конфигурации при монтировании
   useEffect(() => {
@@ -38,35 +51,41 @@ function DndExample() {
       if (error) {
         console.error('Ошибка загрузки конфигурации:', error);
       } else if (config) {
-        setDroppables(config.droppables);
+        // Загружаем только items, имена будут вычисляться динамически
+        const updatedDroppables = { ...config.droppables };
+        Object.keys(updatedDroppables).forEach(droppableId => {
+          updatedDroppables[droppableId] = {
+            ...updatedDroppables[droppableId],
+            name: '', // Имена не сохраняем, они вычисляются динамически
+          };
+        });
+        setDroppables(updatedDroppables);
       }
       setIsLoading(false);
     };
     loadConfig();
   }, []);
-  function handleDragStart({ active }: DragStartEvent) {
-    const activeDraggable = draggableItems.find(item => item.id === active.id);
 
-    Notifications.notify(`Вы потащили элемент <b>${activeDraggable?.name}</b>`);
+  function handleDragStart({ active }: DragStartEvent) {
+    const elementName = getElementName(active.id as string);
+    Notifications.notify(`${t('draggedElement')} <b>${elementName}</b>`);
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {
-    const activeDraggable = draggableItems.find(item => item.id === active.id);
-    const overDroppable = droppables[over?.id as string];
+    const elementName = getElementName(active.id as string);
     const overDroppableKey = over?.id as string;
     const itemId = active.id as string;
     const currentDroppableKey = Object.keys(droppables).find(
       key => droppables[key].items.includes(itemId)
     );
     const isParent = currentDroppableKey == overDroppableKey;
+    const areaName = overDroppableKey ? getAreaName(overDroppableKey) : '';
 
     if (isDroppable(overDroppableKey)) {
       if (!isParent && droppables[overDroppableKey].items.length < maxItemsPerDroppable) {
-
-        Notifications.notify(`<b>${activeDraggable?.name}</b> находится над <b>${overDroppable?.name}</b>`);
+        Notifications.notify(`<b>${elementName}</b> ${t('elementOver')} <b>${areaName}</b>`);
       } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
-
-        Notifications.attention(`В <b>${overDroppable?.name}</b> больше нет места.`);
+        Notifications.attention(`<b>${areaName}</b> ${t('noSpace')}.`);
       }
     }
   }
@@ -74,18 +93,18 @@ function DndExample() {
   function handleDragEnd({ active, over }: DragEndEvent) {
     const itemId = active.id as string;
     const overDroppableKey = over?.id as string;
-    const overDroppable = droppables[overDroppableKey];
 
     // Находим, в каком droppable сейчас находится этот элемент (если есть)
     const currentDroppableKey = Object.keys(droppables).find(
       key => droppables[key].items.includes(itemId)
     );
 
-    const activeDraggable = draggableItems.find(item => item.id === active.id);
+    const elementName = getElementName(active.id as string);
     const isParent = currentDroppableKey == overDroppableKey;
 
     // Проверяем, является ли целевая область droppable
     if (isDroppable(overDroppableKey)) {
+      const areaName = getAreaName(overDroppableKey);
       // Проверяем, что в droppable есть место для элемента
       if (!isParent && droppables[overDroppableKey].items.length < maxItemsPerDroppable) {
         setDroppables(prev => {
@@ -114,12 +133,12 @@ function DndExample() {
           return updates;
         });
 
-        Notifications.success(`<b>${activeDraggable?.name}</b> перемещен в <b>${overDroppable.name}</b>`);
+        Notifications.success(`<b>${elementName}</b> ${t('elementMoved')} <b>${areaName}</b>`);
       } else if (!isParent && droppables[overDroppableKey].items.length >= maxItemsPerDroppable) {
-
-        Notifications.warn(`В <b>${overDroppable.name}</b> нет свободных мест. Перетащите элемент в другую область.`);
+        Notifications.warn(`<b>${areaName}</b> ${t('noFreeSlots')}.`);
       }
     } else if (currentDroppableKey) {
+      const currentAreaName = getAreaName(currentDroppableKey);
       // Если элемент перетащен не в droppable, удаляем его из текущего droppable
       setDroppables(prev => {
         const updates = {
@@ -142,18 +161,17 @@ function DndExample() {
         return updates;
       });
 
-      Notifications.success(`Вы убрали <b>${activeDraggable?.name}</b> из <b>${droppables[currentDroppableKey].name}</b>`);
+      Notifications.success(`${t('elementRemoved')} <b>${elementName}</b> ${t('from')} <b>${currentAreaName}</b>`);
     } else if (!currentDroppableKey) {
       // Если элемент перетащен не в droppable, удаляем его из текущего droppable
-
-      Notifications.notify(`Вы передумали перетаскивать элемент <b>${activeDraggable?.name}</b>`);
+      Notifications.notify(`${t('dragCancelled')} <b>${elementName}</b>`);
     }
   }
 
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
 
   if (isLoading) {
-    return <div>Загрузка...</div>;
+    return <div>{t('loading')}</div>;
   }
 
   return (
@@ -169,12 +187,12 @@ function DndExample() {
                       ? (
                         droppables[droppableId].items.map(itemId => (
                           <Draggable key={itemId} id={itemId}>
-                            {draggableItems.find(i => i.id === itemId)?.name}
+                            {getElementName(itemId)}
                           </Draggable>
                         ))
                       )
                       : (
-                        <p className={styles.emptyCellText}>{droppables[droppableId].name}</p>
+                        <p className={styles.emptyCellText}>{getAreaName(droppableId)}</p>
                       )
                     }
                   </div>
@@ -186,7 +204,7 @@ function DndExample() {
                 if (!droppedItems.has(item.id)) {
                   return (
                     <Draggable key={item.id} id={item.id}>
-                      {item.name}
+                      {getElementName(item.id)}
                     </Draggable>
                   );
                 }

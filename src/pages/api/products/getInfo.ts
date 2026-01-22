@@ -1,6 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
+import { getLocaleFromRequest } from "@/utils/i18n-api";
+import { getAllMessages } from "@/locales/loadMessages";
 
 type ProductType = {
   id: number;
@@ -17,14 +19,17 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>,
 ) {
+  const locale = getLocaleFromRequest(req);
+  const messages = getAllMessages(locale);
+
   if (req.method !== "GET") {
-    return res.status(405).json({ product: null, error: "Method not allowed" });
+    return res.status(405).json({ product: null, error: messages.api.methodNotAllowed });
   }
 
   const { product_id } = req.query;
 
   if (!product_id || typeof product_id !== 'string') {
-    return res.status(400).json({ product: null, error: "Product ID is required" });
+    return res.status(400).json({ product: null, error: messages.api.productIdRequired });
   }
 
   try {
@@ -46,7 +51,7 @@ export default async function handler(
     if (!data) {
       return res.status(404).json({
         product: null,
-        error: `Товар с ID ${product_id} не найден`,
+        error: messages.products.notFound(product_id),
       });
     }
 
@@ -54,7 +59,7 @@ export default async function handler(
   } catch (error) {
     return res.status(500).json({
       product: null,
-      error: error instanceof Error ? error.message : "Internal server error",
+      error: error instanceof Error ? error.message : messages.api.internalError,
     });
   }
 }

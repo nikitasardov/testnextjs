@@ -20,9 +20,11 @@ import * as Notifications from '@/components/Notifications';
 import { withAuth } from "@/components/withAuth";
 import { saveGameConfig, loadGameConfig } from '@/utils/game-api';
 import { getHintFromLLM } from '@/utils/hint-api';
+import { useTranslations } from 'next-intl';
 import styles from './15-puzzle.module.css';
 
 function Dnd15Puzzle() {
+  const t = useTranslations('game');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -44,9 +46,16 @@ function Dnd15Puzzle() {
     })
   );
 
-  const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(
-    generateDroppables(16, 'Ячейка ')
-  );
+  // Инициализируем droppables без локализованных названий (названия будут вычисляться при рендеринге)
+  const [droppables, setDroppables] = useState<{ [key: string]: { name: string, items: string[] } }>(() => {
+    return generateDroppables(16, ''); // Пустой префикс, название будет вычисляться при рендеринге
+  });
+
+  // Функция для получения локализованного названия ячейки по её ID
+  const getCellName = (droppableId: string): string => {
+    const index = Number.parseInt(droppableId.replace('droppable', ''), 10);
+    return `${t('cell')} ${index}`;
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [isNewGame, setIsNewGame] = useState(false);
   const [loadedConfig, setLoadedConfig] = useState<boolean | null>(null);
@@ -62,7 +71,7 @@ function Dnd15Puzzle() {
   const isSolvable = (board: number[]): boolean => {
     // Убедимся, что доска — массив из 16 элементов
     if (board.length !== 16) {
-      throw new Error('Доска должна быть 4×4 (16 элементов).');
+      throw new Error(t('boardMustBe4x4'));
     }
 
     // 1. Собираем последовательность без пустой клетки (0)
@@ -129,9 +138,9 @@ function Dnd15Puzzle() {
       if (filledCells === 15) {
         const solvable = isSolvable(board);
         if (solvable) {
-          Notifications.success('Решение есть!');
+          Notifications.success(t('solutionExists'));
         } else {
-          Notifications.warn('Решения нет. Нажмите "Заново" для новой игры', 'red', true);
+          Notifications.warn(t('noSolution'), 'red', true);
         }
       }
     } catch (error) {
@@ -175,9 +184,9 @@ function Dnd15Puzzle() {
     saveTimeoutRef.current = setTimeout(async () => {
       const { success, error } = await saveGameConfig('15-puzzle', droppables);
       if (success) {
-        Notifications.success('Игра сохранена');
+        Notifications.success(t('gameSaved'));
       } else {
-        Notifications.warn(`Ошибка сохранения: ${error || 'Неизвестная ошибка'}`);
+        Notifications.warn(`${t('saveError')}: ${error || t('unknownError')}`);
       }
       saveTimeoutRef.current = null;
     }, 100);
@@ -198,7 +207,7 @@ function Dnd15Puzzle() {
         const solvable = isSolvable(board);
         if (!solvable) {
           // Комбинация нерешаема - показываем сообщение без запроса к API
-          const unsolvableMessage = 'Данную комбинацию плиток невозможно упорядочить. Начните новую игру.';
+          const unsolvableMessage = t('noSolution');
           Notifications.notify(unsolvableMessage, '#9c27b0', false, 30000);
           return;
         }
@@ -210,21 +219,21 @@ function Dnd15Puzzle() {
 
     setIsHintLoading(true);
     // Показываем уведомление о том, что LLM думает
-    Notifications.inProgress(`${llmModelName} уже занимается вашим вопросом...`);
+    Notifications.inProgress(`${llmModelName} ${t('hintInProgress')}`);
 
     try {
       // Передаем только состояние игры, промпт формируется на бекенде
       const { hint, error } = await getHintFromLLM(droppables);
 
       if (error || !hint) {
-        Notifications.warn(error || 'Не удалось получить подсказку. Попробуйте позже.');
+        Notifications.warn(error || t('hintError'));
         return;
       }
 
       Notifications.notify(hint, '#9c27b0', false, 30000);
     } catch (error) {
       console.error('Ошибка при получении подсказки:', error);
-      Notifications.warn('Не удалось получить подсказку. Попробуйте позже.');
+      Notifications.warn(t('hintError'));
     } finally {
       setIsHintLoading(false);
     }
@@ -248,9 +257,9 @@ function Dnd15Puzzle() {
     loadModelName();
   }, []);
 
-  // Загрузка конфигурации при монтировании
+  // Загрузка конфигурации при монтировании (только один раз)
   useEffect(() => {
-    // Защита от двойного вызова из-за React Strict Mode
+    // Защита от двойного вызова из-за React Strict Mode и перерисовок
     if (loadConfigRef.current) {
       return;
     }
@@ -283,10 +292,18 @@ function Dnd15Puzzle() {
         setConfigToCheck(shuffledDroppablesState);
       } else if (config) {
         // Успешно загружена конфигурация
-        setDroppables(config.droppables);
+        // Сохраняем только items из загруженной конфигурации, name будет вычисляться при рендеринге
+        const loadedDroppables: typeof droppables = {};
+        Object.keys(config.droppables).forEach(key => {
+          loadedDroppables[key] = {
+            name: '', // name не важен, будет вычисляться при рендеринге
+            items: config.droppables[key].items || [],
+          };
+        });
+        setDroppables(loadedDroppables);
         setIsNewGame(false);
         setLoadedConfig(true);
-        setConfigToCheck(config.droppables);
+        setConfigToCheck(loadedDroppables);
       } else {
         // Конфигурация не найдена, начинаем новую игру
         const droppableKeys = Object.keys(droppables);
@@ -359,22 +376,22 @@ function Dnd15Puzzle() {
   // Показываем уведомление "новая игра" при первом переходе или после перемешивания
   useEffect(() => {
     if (!isLoading && isNewGame) {
-      Notifications.notify('Новая игра');
+      Notifications.notify(t('newGame'));
       // Сбрасываем флаг после показа уведомления
       const timer = setTimeout(() => {
         setIsNewGame(false);
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isNewGame, isLoading]);
+  }, [isNewGame, isLoading, t]);
 
   // Показываем уведомление "Игра загружена" после успешной загрузки
   useEffect(() => {
     if (!isLoading && loadedConfig === true) {
-      Notifications.success('Игра загружена');
+      Notifications.success(t('gameLoaded'));
       setLoadedConfig(null); // Сбрасываем флаг
     }
-  }, [isLoading, loadedConfig]);
+  }, [isLoading, loadedConfig, t]);
 
   // Проверяем решаемость после монтирования контейнера уведомлений
   useEffect(() => {
@@ -410,7 +427,7 @@ function Dnd15Puzzle() {
                         ))
                       )
                       : (
-                        <p className={styles.emptyCellText}>{droppables[droppableId].name}</p>
+                        <p className={styles.emptyCellText}>{getCellName(droppableId)}</p>
                       )
                     }
                   </div>
@@ -421,7 +438,7 @@ function Dnd15Puzzle() {
           </div>
           <div className={`${styles.buttonsContainer} ${isMobile ? styles.buttonsContainerMobile : ''}`}>
             <div className={`${styles.actionsContainer} ${isMobile ? styles.actionsContainerMobile : ''}`}>
-              <Tooltip title="Начать новую игру">
+              <Tooltip title={t('restartTooltip')}>
                 <Button
                   variant="contained"
                   onClick={shuffleItems}
@@ -432,10 +449,10 @@ function Dnd15Puzzle() {
                     flex: isMobile ? 1 : 'none'
                   }}
                 >
-                  Заново
+                  {t('restart')}
                 </Button>
               </Tooltip>
-              <Tooltip title="Запомнить расположение плиток, чтобы продолжить позже">
+              <Tooltip title={t('saveTooltip')}>
                 <Button
                   variant="contained"
                   onClick={handleSave}
@@ -446,10 +463,10 @@ function Dnd15Puzzle() {
                     flex: isMobile ? 1 : 'none'
                   }}
                 >
-                  Сохранить
+                  {t('save')}
                 </Button>
               </Tooltip>
-              <Tooltip title={`${llmModelName} порекомендует следующий ход`}>
+              <Tooltip title={`${llmModelName} ${t('hintTooltip')}`}>
                 <Button
                   variant="contained"
                   onClick={handleGetHint}
@@ -467,7 +484,7 @@ function Dnd15Puzzle() {
                     }),
                   }}
                 >
-                  {isHintLoading ? 'Загрузка...' : 'Подсказка'}
+                  {isHintLoading ? t('loading') : t('hint')}
                 </Button>
               </Tooltip>
             </div>

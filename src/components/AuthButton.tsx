@@ -6,9 +6,13 @@ import { Button, Box, Avatar, Menu, MenuItem, Typography, Divider } from '@mui/m
 import { useAuth } from '@/contexts/AuthContext';
 // Импортируем компонент модального окна авторизации
 import AuthModal from './AuthModal';
+// локализация
+import { useTranslations } from 'next-intl';
 
 // Функциональный компонент кнопки авторизации
 export default function AuthButton() {
+    const t = useTranslations('auth');
+    const tCommon = useTranslations('common');
     // Используем хук useAuth для получения данных о пользователе
     // Деструктуризация объекта: извлекаем user и signOut
     const { user, signOut } = useAuth();
@@ -54,7 +58,7 @@ export default function AuthButton() {
                 <Button variant="contained" onClick={() => setAuthModalOpen(true)}>
                     {/* variant="contained" - заполненная кнопка
                         onClick - вызывается стрелочная функция, которая открывает модальное окно */}
-                    Войти
+                    {t('login')}
                 </Button>
                 {/* AuthModal - модальное окно авторизации
                     open - контролируется состоянием authModalOpen
@@ -118,7 +122,7 @@ export default function AuthButton() {
                     disabled - элемент неактивен (нельзя кликнуть)
                     Это просто информационный элемент */}
                 <MenuItem disabled>
-                    <Typography variant="body2">ID: {user.id}</Typography>
+                    <Typography variant="body2">{tCommon('id')}: {user.id}</Typography>
                 </MenuItem>
 
                 {/* Divider - разделитель между элементами меню */}
@@ -126,7 +130,7 @@ export default function AuthButton() {
 
                 {/* Кнопка выхода */}
                 <MenuItem onClick={handleSignOut}>
-                    <Typography>Выйти</Typography>
+                    <Typography>{t('logout')}</Typography>
                 </MenuItem>
             </Menu>
         </>

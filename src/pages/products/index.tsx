@@ -2,6 +2,7 @@ import { Typography, Box, List, ListItem, ListItemText, CircularProgress, Alert,
 import { supabase } from '@/utils/supabase';
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface ProductType {
     id: number,
@@ -10,6 +11,8 @@ interface ProductType {
 }
 
 export default function Products() {
+    const t = useTranslations('products');
+    const tCommon = useTranslations('common');
     const [products, setProducts] = useState<ProductType[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +35,7 @@ export default function Products() {
                     setProducts(data as ProductType[]);
                 }
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Ошибка при загрузке товаров');
+                setError(err instanceof Error ? err.message : t('loadError'));
                 console.error('Ошибка загрузки товаров:', err);
             } finally {
                 setLoading(false);
@@ -40,7 +43,7 @@ export default function Products() {
         }
 
         getProducts();
-    }, []);
+    }, [t]);
 
     if (loading) {
         return (
@@ -61,12 +64,12 @@ export default function Products() {
     return (
         <Box p={3}>
             <Typography variant="h4" component="h1" gutterBottom>
-                Список товаров
+                {t('listTitle')}
             </Typography>
             {products.length === 0
                 ? (
                     <Typography variant="body1" color="text.secondary">
-                        Товары не найдены
+                        {t('productsNotFound')}
                     </Typography>
                 )
                 : (
@@ -77,7 +80,7 @@ export default function Products() {
                                     <ListItemButton>
                                         <ListItemText
                                             primary={product.name}
-                                            secondary={`ID: ${product.id} • Создан: ${new Date(product.created_at).toLocaleString('ru-RU')}`}
+                                            secondary={`${tCommon('id')}: ${product.id} • ${t('created')}: ${new Date(product.created_at).toLocaleString('ru-RU')}`}
                                         />
                                     </ListItemButton>
                                 </Link>

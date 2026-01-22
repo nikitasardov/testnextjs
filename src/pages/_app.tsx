@@ -1,11 +1,14 @@
 // глобальные стили CSS
 import "@/styles/globals.css";
 
-import type { AppProps } from "next/app";
+import type { AppContext, AppProps } from "next/app";
+import NextApp from "next/app";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
 import { useMemo, useState, useEffect } from "react";
+
+import { IntlProvider, useTranslations } from "next-intl";
 
 // компоненты для темы Material UI
 // ThemeProvider - предоставляет тему всем дочерним компонентам
@@ -22,15 +25,23 @@ import { Box, AppBar, Toolbar, Container, Typography, IconButton } from '@mui/ma
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import AuthButton from '@/components/AuthButton';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // утилиты для работы с cookies
-import { getCookie, setCookie } from '@/utils/cookies';
+import { getCookie, setCookie, getCookieFromHeader } from '@/utils/cookies';
+
+import { getAllMessages } from "@/locales/loadMessages";
+import { defaultLocale, locales, type AppLocale } from "@/locales/config";
+import type { Messages } from "@/locales/messages";
+import { LocaleProvider, useLocale } from "@/contexts/LocaleContext";
 
 // Внутренний компонент, который использует контекст авторизации
-function AppContent({ Component, pageProps }: AppProps) {
+function AppContent({ Component, pageProps }: AppProps<{ messages: Messages; locale: string }>) {
   // Получаем информацию об авторизации из контекста
   const { user, loading } = useAuth();
   const router = useRouter();
+  // Получаем переводы из контекста локали для динамического обновления
+  const t = useTranslations('common');
 
   // Инициализируем состояние темы дефолтным значением 'light'
   // Тема из куки будет применена только после авторизации
@@ -101,10 +112,10 @@ function AppContent({ Component, pageProps }: AppProps) {
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               {router.pathname === "/"
                 ? (
-                  <>My next.js app</>
+                  <>{t('brand')}</>
                 )
                 : (
-                  <Link href="/">На главную</Link>
+                  <Link href="/">{t('backHome')}</Link>
                 )}
             </Typography>
 
@@ -113,14 +124,16 @@ function AppContent({ Component, pageProps }: AppProps) {
               color="inherit"
               onClick={toggleTheme}
               sx={{ mr: 1 }}
-              title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
-              aria-label={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
+              title={themeMode === 'light' ? t('switchToDarkMode') : t('switchToLightMode')}
+              aria-label={themeMode === 'light' ? t('switchToDarkMode') : t('switchToLightMode')}
             >
               {themeMode === 'light'
-                ? <DarkModeIcon aria-label="Переключить на темную тему" />
-                : <LightModeIcon aria-label="Переключить на светлую тему" />
+                ? <DarkModeIcon aria-label={t('switchToDarkMode')} />
+                : <LightModeIcon aria-label={t('switchToLightMode')} />
               }
             </IconButton>
+            {/* Переключатель языка */}
+            <LanguageSwitcher />
             {/* AuthButton - компонент кнопки авторизации */}
             {/* Будет показывать "Войти" или аватар пользователя */}
             <AuthButton />
@@ -145,9 +158,67 @@ function AppContent({ Component, pageProps }: AppProps) {
 // Главный компонент приложения с провайдерами
 export default function App(props: AppProps) {
   return (
-    <AuthProvider>
-      {/* AuthProvider - предоставляет контекст авторизации всем дочерним компонентам */}
-      <AppContent {...props} />
-    </AuthProvider>
+    <LocaleProvider
+      initialLocale={props.pageProps.locale as AppLocale}
+      initialMessages={props.pageProps.messages}
+    >
+      <IntlProviderWrapper>
+        <AuthProvider>
+          {/* AuthProvider - предоставляет контекст авторизации всем дочерним компонентам */}
+          <AppContent {...props} />
+        </AuthProvider>
+      </IntlProviderWrapper>
+    </LocaleProvider>
   );
 }
+
+// Обёртка для IntlProvider, которая использует контекст локали
+function IntlProviderWrapper({ children }: { readonly children: React.ReactNode }) {
+  const { locale, messages } = useLocale();
+
+  // Используем useMemo для стабилизации объекта messages, чтобы избежать лишних перерисовок
+  const stableMessages = useMemo(() => messages, [messages]);
+
+  return (
+    <IntlProvider
+      locale={locale}
+      messages={stableMessages}
+      timeZone="UTC"
+    >
+      {children}
+    </IntlProvider>
+  );
+}
+
+App.getInitialProps = async (appContext: AppContext) => {
+  const appProps = await NextApp.getInitialProps(appContext);
+
+  // Определяем локаль по той же логике, что и middleware
+  let locale: AppLocale = defaultLocale;
+
+  // Проверяем cookie
+  const cookieHeader = appContext.ctx.req?.headers.cookie;
+  const cookieLocale = getCookieFromHeader(cookieHeader, 'locale');
+  if (cookieLocale && locales.includes(cookieLocale as AppLocale)) {
+    locale = cookieLocale as AppLocale;
+  } else {
+    // Проверяем Accept-Language
+    const acceptLanguage = appContext.ctx.req?.headers['accept-language'];
+    if (acceptLanguage) {
+      const preferred = acceptLanguage.split(',').map((part) => part.trim().split(';')[0]);
+      const match = preferred.find((lang) => locales.includes(lang as AppLocale));
+      if (match) locale = match as AppLocale;
+    }
+  }
+
+  const messages = getAllMessages(locale);
+
+  return {
+    ...appProps,
+    pageProps: {
+      ...appProps.pageProps,
+      locale,
+      messages,
+    },
+  };
+};
