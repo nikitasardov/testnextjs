@@ -27,6 +27,7 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Собираем приложение для продакшена
+# Переменные окружения будут установлены при запуске контейнера
 RUN yarn build
 
 # Этап 2: Продакшен (минимальный образ)
@@ -45,6 +46,18 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# В standalone режиме Next.js копирует только необходимые файлы в .next/standalone
+# Но некоторые файлы могут отсутствовать, поэтому копируем их дополнительно
+# Проверяем структуру standalone и копируем недостающие файлы
+
+# Копируем конфигурационные файлы, которые могут понадобиться
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./next.config.ts 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/middleware.ts ./middleware.ts 2>/dev/null || true
+
+# Копируем файлы локализации и другие исходные файлы, которые используются в runtime
+# В standalone они должны быть в правильной структуре относительно server.js
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 
 # Переключаемся на непривилегированного пользователя
 USER nextjs
