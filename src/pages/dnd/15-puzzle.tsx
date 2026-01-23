@@ -405,7 +405,7 @@ function Dnd15Puzzle() {
   const droppedItems = new Set(Object.values(droppables).flatMap(droppable => droppable.items));
 
   if (isLoading) {
-    return <div>Загрузка...</div>;
+    return <div>{t('loading')}</div>;
   }
 
   return (

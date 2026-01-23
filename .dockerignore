@@ -1,0 +1,48 @@
+# Игнорируем директории, которые не нужны в контексте сборки Docker
+
+# Зависимости - устанавливаются через yarn install в Dockerfile
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Собранное приложение - собирается в Dockerfile
+.next
+out
+dist
+build
+
+# Git - не нужен в образе
+.git
+.gitignore
+.gitattributes
+
+# IDE и редакторы
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Временные файлы
+*.tmp
+*.temp
+*.log
+
+# Файлы окружения (кроме .env.example)
+.env.local
+.env*.local
+
+# Тестирование
+coverage
+.nyc_output
+
+# Документация и скрипты диагностики (не нужны в production образе)
+*.md
+diagnose*.sh
+test-*.sh
+
+# Другие файлы разработки
+.DS_Store
+*.pem
+

@@ -336,7 +336,7 @@ on:
 #### Установка:
 ```bash
 sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs nginx git
 sudo npm install -g pm2 yarn
 ```

@@ -1,6 +1,7 @@
 import { ComponentType, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from '@/components/AuthModal';
+import { useTranslations } from 'next-intl';
 
 // Тип для компонента, который будет защищен
 type ComponentProps = Record<string, unknown>;
@@ -13,6 +14,7 @@ export function withAuth<P extends ComponentProps>(
   return function ProtectedComponent(props: P) {
     const { user, loading } = useAuth();
     const [authModalOpen, setAuthModalOpen] = useState(false);
+    const t = useTranslations('auth');
 
     // открываем модальное окно, если пользователь не авторизован
     useEffect(() => {
@@ -27,19 +29,19 @@ export function withAuth<P extends ComponentProps>(
 
     // Пока идет проверка авторизации - показываем загрузку
     if (loading) {
-      return <div>Проверка авторизации...</div>;
+      return <div>{t('checkingAuth')}</div>;
     }
 
     // Если не авторизован - показываем модальное окно и ничего больше
     if (!user) {
       return (
         <>
-          <AuthModal 
-            open={authModalOpen} 
-            onClose={() => setAuthModalOpen(false)} 
+          <AuthModal
+            open={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
           />
           {/* Можно показать заглушку, пока модальное окно открыто */}
-          <div>Требуется авторизация</div>
+          <div>{t('authRequired')}</div>
         </>
       );
     }
@@ -48,9 +50,9 @@ export function withAuth<P extends ComponentProps>(
     return (
       <>
         <Component {...props} />
-        <AuthModal 
-          open={false} 
-          onClose={() => setAuthModalOpen(false)} 
+        <AuthModal
+          open={false}
+          onClose={() => setAuthModalOpen(false)}
         />
       </>
     );
