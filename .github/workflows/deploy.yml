@@ -108,6 +108,89 @@ jobs:
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Sync repository with server
+        timeout-minutes: 5
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << EOF
+            set -e
+            cd ${{ secrets.SERVER_PATH }}
+
+            echo "Синхронизация репозитория с GitHub..."
+
+            # Проверяем, является ли директория git репозиторием
+            if [ -d .git ]; then
+              echo "Найден существующий git репозиторий"
+
+              # Проверяем текущую ветку
+              CURRENT_BRANCH=\$(git branch --show-current 2>/dev/null || echo "master")
+              echo "Текущая ветка: \$CURRENT_BRANCH"
+
+              # Получаем имя ветки из GitHub Actions
+              TARGET_BRANCH="${{ github.ref_name }}"
+              echo "Целевая ветка: \$TARGET_BRANCH"
+
+              # Переключаемся на нужную ветку, если нужно
+              if [ "\$CURRENT_BRANCH" != "\$TARGET_BRANCH" ]; then
+                echo "Переключение на ветку \$TARGET_BRANCH..."
+                set +e
+                git fetch origin \$TARGET_BRANCH 2>/dev/null || git fetch origin
+                git checkout -B \$TARGET_BRANCH origin/\$TARGET_BRANCH 2>/dev/null || git checkout -b \$TARGET_BRANCH 2>/dev/null || true
+                set -e
+              fi
+
+              # Обновляем репозиторий
+              echo "Выполнение git pull..."
+              set +e
+              git fetch origin \$TARGET_BRANCH || git fetch origin
+              git reset --hard origin/\$TARGET_BRANCH || git reset --hard origin/master || git reset --hard origin/main
+              RESET_EXIT=\$?
+              set -e
+
+              if [ \$RESET_EXIT -ne 0 ]; then
+                echo "Предупреждение: не удалось выполнить reset, пробуем pull..."
+                set +e
+                git pull origin \$TARGET_BRANCH || git pull origin master || git pull origin main || true
+                set -e
+              fi
+
+              echo "✓ Репозиторий синхронизирован"
+              echo "Текущий коммит: \$(git rev-parse --short HEAD 2>/dev/null || echo 'неизвестно')"
+            else
+              echo "Директория не является git репозиторием"
+              echo "Попытка инициализации репозитория..."
+
+              # Формируем URL репозитория
+              REPO_URL="https://github.com/${{ github.repository }}.git"
+              echo "URL репозитория: \$REPO_URL"
+
+              # Пытаемся клонировать (может не сработать для приватных репозиториев без токена)
+              if [ -z "\$(ls -A . 2>/dev/null)" ]; then
+                echo "Директория пуста, клонируем репозиторий..."
+                set +e
+                git clone -b ${{ github.ref_name }} \$REPO_URL .
+                CLONE_EXIT=\$?
+                set -e
+                if [ \$CLONE_EXIT -ne 0 ]; then
+                  echo "Предупреждение: не удалось клонировать репозиторий автоматически"
+                  echo "Убедитесь, что репозиторий настроен на сервере вручную"
+                fi
+              else
+                echo "Директория не пуста, инициализируем git..."
+                git init
+                git remote add origin \$REPO_URL 2>/dev/null || git remote set-url origin \$REPO_URL
+                set +e
+                git fetch origin ${{ github.ref_name }} || git fetch origin
+                git checkout -b ${{ github.ref_name }} origin/${{ github.ref_name }} || true
+                CHECKOUT_EXIT=\$?
+                set -e
+                if [ \$CHECKOUT_EXIT -ne 0 ]; then
+                  echo "Предупреждение: не удалось переключиться на ветку"
+                  echo "Репозиторий будет синхронизирован при следующем деплое"
+                fi
+              fi
+            fi
+          EOF
+
       - name: Deploy on server
         timeout-minutes: 10
         run: |
