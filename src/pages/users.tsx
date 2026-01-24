@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { withAuth } from "@/components/withAuth";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface User {
     id: string;
@@ -12,6 +12,7 @@ interface User {
 function Users() {
     const t = useTranslations('users');
     const tCommon = useTranslations('common');
+    const locale = useLocale();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,14 @@ function Users() {
     const formatDate = (dateString: string) => {
         if (!dateString) return tCommon('never');
         const date = new Date(dateString);
-        return date.toLocaleString("ru-RU", {
+        // Маппинг локалей для toLocaleString
+        const localeMap: Record<string, string> = {
+            'ru': 'ru-RU',
+            'en': 'en-US',
+            'es': 'es-ES',
+        };
+        const dateLocale = localeMap[locale] || 'ru-RU';
+        return date.toLocaleString(dateLocale, {
             year: "numeric",
             month: "long",
             day: "numeric",
