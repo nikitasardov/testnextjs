@@ -2,7 +2,7 @@ import { Typography, Box, List, ListItem, ListItemText, CircularProgress, Alert,
 import { supabase } from '@/utils/supabase';
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface ProductType {
     id: number,
@@ -13,9 +13,23 @@ interface ProductType {
 export default function Products() {
     const t = useTranslations('products');
     const tCommon = useTranslations('common');
+    const locale = useLocale();
     const [products, setProducts] = useState<ProductType[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+
+    const getDateLocale = (loc: string): string => {
+        const localeMap: Record<string, string> = {
+            'ru': 'ru-RU',
+            'en': 'en-US',
+            'es': 'es-ES',
+            'kk': 'kk-KZ',
+            'zh': 'zh-CN',
+            'ko': 'ko-KR',
+            'ja': 'ja-JP',
+        };
+        return localeMap[loc] || 'ru-RU';
+    };
 
     useEffect(() => {
         async function getProducts() {
@@ -80,7 +94,7 @@ export default function Products() {
                                     <ListItemButton>
                                         <ListItemText
                                             primary={product.name}
-                                            secondary={`${tCommon('id')}: ${product.id} • ${t('created')}: ${new Date(product.created_at).toLocaleString('ru-RU')}`}
+                                            secondary={`${tCommon('id')}: ${product.id} • ${t('created')}: ${new Date(product.created_at).toLocaleString(getDateLocale(locale))}`}
                                         />
                                     </ListItemButton>
                                 </Link>

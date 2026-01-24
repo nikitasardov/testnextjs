@@ -22,7 +22,7 @@ export default function middleware(request: NextRequest) {
     // Временное решение: убираем rewrite заголовок, чтобы Next.js обрабатывал оригинальный путь
     // Проверяем, что rewrite ведет на путь с локалью (которого нет в pages-manifest.json)
     const rewritePath = response.headers.get('x-middleware-rewrite');
-    if (rewritePath && (rewritePath.includes('/ru') || rewritePath.includes('/en') || rewritePath.includes('/es'))) {
+    if (rewritePath && (rewritePath.includes('/ru') || rewritePath.includes('/en') || rewritePath.includes('/es') || rewritePath.includes('/kk') || rewritePath.includes('/zh') || rewritePath.includes('/ko') || rewritePath.includes('/ja'))) {
         // Создаем новый NextResponse без rewrite заголовка, но сохраняем все остальные заголовки
         const nextResponse = NextResponse.next({
             request: {

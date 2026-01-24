@@ -48,6 +48,10 @@ function Users() {
             'ru': 'ru-RU',
             'en': 'en-US',
             'es': 'es-ES',
+            'kk': 'kk-KZ',
+            'zh': 'zh-CN',
+            'ko': 'ko-KR',
+            'ja': 'ja-JP',
         };
         const dateLocale = localeMap[locale] || 'ru-RU';
         return date.toLocaleString(dateLocale, {
