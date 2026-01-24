@@ -88,6 +88,9 @@ jobs:
           SERVER_PATH="${{ secrets.SERVER_PATH }}"
           DEV_PATH="$(dirname "$SERVER_PATH")/dev"
           echo "Путь к тестовому стенду: $DEV_PATH"
+          # Создаем директорию на сервере, если её нет
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p '$DEV_PATH'"
+          # Копируем образ
           scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:$DEV_PATH/image.tar.gz
           echo "Образ успешно скопирован на сервер в $DEV_PATH"
 
