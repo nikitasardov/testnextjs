@@ -43,6 +43,23 @@ function Users() {
     const formatDate = (dateString: string) => {
         if (!dateString) return tCommon('never');
         const date = new Date(dateString);
+
+        // Кастомные названия месяцев для казахского языка
+        const kazakhMonths: Record<number, string> = {
+            0: 'қаңтар',
+            1: 'ақпан',
+            2: 'наурыз',
+            3: 'сәуір',
+            4: 'мамыр',
+            5: 'маусым',
+            6: 'шілде',
+            7: 'тамыз',
+            8: 'қыркүйек',
+            9: 'қазан',
+            10: 'қараша',
+            11: 'желтоқсан',
+        };
+
         // Маппинг локалей для toLocaleString
         const localeMap: Record<string, string> = {
             'ru': 'ru-RU',
@@ -54,6 +71,17 @@ function Users() {
             'ja': 'ja-JP',
         };
         const dateLocale = localeMap[locale] || 'ru-RU';
+
+        // Для казахского языка используем кастомное форматирование
+        if (locale === 'kk') {
+            const day = date.getDate();
+            const month = kazakhMonths[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${year} ж. ${day} ${month}, ${hours}:${minutes}`;
+        }
+
         return date.toLocaleString(dateLocale, {
             year: "numeric",
             month: "long",
