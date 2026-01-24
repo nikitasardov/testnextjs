@@ -47,6 +47,8 @@ const auth = {
   resetPasswordEmailSent: 'Se ha enviado un correo con instrucciones para restablecer la contraseña.',
   changePasswordError: 'Error al cambiar la contraseña',
   linkError: 'Error al procesar el enlace de restablecimiento de contraseña',
+  checkingAuth: 'Verificando autorización...',
+  authRequired: 'Se requiere autorización',
 };
 
 const home = {

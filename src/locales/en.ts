@@ -47,6 +47,8 @@ const auth = {
   resetPasswordEmailSent: 'Password reset instructions have been sent to your email.',
   changePasswordError: 'Error changing password',
   linkError: 'Error processing password reset link',
+  checkingAuth: 'Checking authorization...',
+  authRequired: 'Authorization required',
 };
 
 const home = {

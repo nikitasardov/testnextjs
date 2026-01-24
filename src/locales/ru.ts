@@ -47,6 +47,8 @@ const auth = {
   resetPasswordEmailSent: 'Письмо с инструкциями по восстановлению пароля отправлено на ваш email.',
   changePasswordError: 'Ошибка при изменении пароля',
   linkError: 'Ошибка при обработке ссылки восстановления пароля',
+  checkingAuth: 'Проверка авторизации...',
+  authRequired: 'Требуется авторизация',
 };
 
 const home = {

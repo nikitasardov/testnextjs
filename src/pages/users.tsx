@@ -37,7 +37,7 @@ function Users() {
         }
 
         fetchUsers();
-    });
+    }, [t]);
 
     const formatDate = (dateString: string) => {
         if (!dateString) return tCommon('never');

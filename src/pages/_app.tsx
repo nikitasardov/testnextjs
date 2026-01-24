@@ -191,34 +191,54 @@ function IntlProviderWrapper({ children }: { readonly children: React.ReactNode 
 }
 
 App.getInitialProps = async (appContext: AppContext) => {
-  const appProps = await NextApp.getInitialProps(appContext);
+  try {
+    const appProps = await NextApp.getInitialProps(appContext);
 
-  // Определяем локаль по той же логике, что и middleware
-  let locale: AppLocale = defaultLocale;
+    // Определяем локаль по той же логике, что и middleware
+    let locale: AppLocale = defaultLocale;
 
-  // Проверяем cookie
-  const cookieHeader = appContext.ctx.req?.headers.cookie;
-  const cookieLocale = getCookieFromHeader(cookieHeader, 'locale');
-  if (cookieLocale && locales.includes(cookieLocale as AppLocale)) {
-    locale = cookieLocale as AppLocale;
-  } else {
-    // Проверяем Accept-Language
-    const acceptLanguage = appContext.ctx.req?.headers['accept-language'];
-    if (acceptLanguage) {
-      const preferred = acceptLanguage.split(',').map((part) => part.trim().split(';')[0]);
-      const match = preferred.find((lang) => locales.includes(lang as AppLocale));
-      if (match) locale = match as AppLocale;
+    // Проверяем cookie
+    const cookieHeader = appContext.ctx.req?.headers.cookie;
+    const cookieLocale = getCookieFromHeader(cookieHeader, 'locale');
+    if (cookieLocale && locales.includes(cookieLocale as AppLocale)) {
+      locale = cookieLocale as AppLocale;
+    } else {
+      // Проверяем Accept-Language
+      const acceptLanguage = appContext.ctx.req?.headers['accept-language'];
+      if (acceptLanguage) {
+        const preferred = acceptLanguage.split(',').map((part) => part.trim().split(';')[0]);
+        const match = preferred.find((lang) => locales.includes(lang as AppLocale));
+        if (match) locale = match as AppLocale;
+      }
+    }
+
+    const messages = getAllMessages(locale);
+
+    return {
+      ...appProps,
+      pageProps: {
+        ...appProps.pageProps,
+        locale,
+        messages,
+      },
+    };
+  } catch {
+    // Возвращаем базовые пропсы с дефолтной локалью
+    try {
+      const appProps = await NextApp.getInitialProps(appContext);
+      const messages = getAllMessages(defaultLocale);
+      return {
+        ...appProps,
+        pageProps: {
+          ...appProps.pageProps,
+          locale: defaultLocale,
+          messages,
+        },
+      };
+    } catch {
+      // Последняя попытка - возвращаем минимальные пропсы
+      const appProps = await NextApp.getInitialProps(appContext);
+      return appProps;
     }
   }
-
-  const messages = getAllMessages(locale);
-
-  return {
-    ...appProps,
-    pageProps: {
-      ...appProps.pageProps,
-      locale,
-      messages,
-    },
-  };
 };
