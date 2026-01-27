@@ -178,6 +178,24 @@ const api = {
     failedToGeneratePrompt: 'Промпт құру мүмкін болмады',
 };
 
+const settings = {
+    title: 'Баптаулар',
+    telegramSettings: 'Telegram баптаулары',
+    telegramBotToken: 'Telegram бот токені',
+    telegramBotTokenPlaceholder: 'Бот токенін енгізіңіз',
+    telegramBotTokenHint: 'Бот токенін Telegram-дағы @BotFather-ден алуға болады',
+    telegramChatId: 'Хабарландырулар үшін чат ID',
+    telegramChatIdPlaceholder: 'Чат ID енгізіңіз',
+    telegramChatIdHint: 'Чат ID-ді Telegram-дағы арнайы боттан алуға болады',
+    save: 'Сақтау',
+    saving: 'Сақталуда...',
+    saveSuccess: 'Баптаулар сәтті сақталды',
+    loadError: 'Баптауларды жүктеу қатесі',
+    saveError: 'Баптауларды сақтау қатесі',
+    errorPrefix: 'Қате',
+    unknownError: 'Белгісіз қате',
+};
+
 const emails = {
     hello: 'Сәлем',
 };
@@ -193,6 +211,7 @@ const messages = {
     emails,
     game,
     llm,
+    settings,
 } as const;
 
 export default messages;

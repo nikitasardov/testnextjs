@@ -175,6 +175,24 @@ const api = {
   failedToGeneratePrompt: 'Failed to generate prompt',
 };
 
+const settings = {
+  title: 'Settings',
+  telegramSettings: 'Telegram Settings',
+  telegramBotToken: 'Telegram Bot Token',
+  telegramBotTokenPlaceholder: 'Enter bot token',
+  telegramBotTokenHint: 'You can get bot token from @BotFather in Telegram',
+  telegramChatId: 'Chat ID for notifications',
+  telegramChatIdPlaceholder: 'Enter chat ID',
+  telegramChatIdHint: 'You can get chat ID from special bot in Telegram',
+  save: 'Save',
+  saving: 'Saving...',
+  saveSuccess: 'Settings saved successfully',
+  loadError: 'Error loading settings',
+  saveError: 'Error saving settings',
+  errorPrefix: 'Error',
+  unknownError: 'Unknown error',
+};
+
 const emails = {
   hello: 'Hello',
 };
@@ -190,6 +208,7 @@ const messages = {
   emails,
   game,
   llm,
+  settings,
 } as const;
 
 export default messages;

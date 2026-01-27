@@ -178,6 +178,24 @@ const api = {
     failedToGeneratePrompt: 'プロンプトの生成に失敗しました',
 };
 
+const settings = {
+    title: '設定',
+    telegramSettings: 'Telegram設定',
+    telegramBotToken: 'Telegramボットトークン',
+    telegramBotTokenPlaceholder: 'ボットトークンを入力',
+    telegramBotTokenHint: 'Telegramの@BotFatherからボットトークンを取得できます',
+    telegramChatId: '通知用チャットID',
+    telegramChatIdPlaceholder: 'チャットIDを入力',
+    telegramChatIdHint: 'Telegramの特別なボットからチャットIDを取得できます',
+    save: '保存',
+    saving: '保存中...',
+    saveSuccess: '設定が正常に保存されました',
+    loadError: '設定の読み込みエラー',
+    saveError: '設定の保存エラー',
+    errorPrefix: 'エラー',
+    unknownError: '不明なエラー',
+};
+
 const emails = {
     hello: 'こんにちは',
 };
@@ -193,6 +211,7 @@ const messages = {
     emails,
     game,
     llm,
+    settings,
 } as const;
 
 export default messages;

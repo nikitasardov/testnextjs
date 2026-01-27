@@ -175,6 +175,24 @@ const api = {
   failedToGeneratePrompt: 'Не удалось сформировать промпт',
 };
 
+const settings = {
+  title: 'Настройки',
+  telegramSettings: 'Настройки Telegram',
+  telegramBotToken: 'Токен Telegram-бота',
+  telegramBotTokenPlaceholder: 'Введите токен бота',
+  telegramBotTokenHint: 'Токен бота можно получить у @BotFather в Telegram',
+  telegramChatId: 'ID чата для уведомлений',
+  telegramChatIdPlaceholder: 'Введите ID чата',
+  telegramChatIdHint: 'ID чата можно получить у специального бота в Telegram',
+  save: 'Сохранить',
+  saving: 'Сохранение...',
+  saveSuccess: 'Настройки успешно сохранены',
+  loadError: 'Ошибка при загрузке настроек',
+  saveError: 'Ошибка при сохранении настроек',
+  errorPrefix: 'Ошибка',
+  unknownError: 'Неизвестная ошибка',
+};
+
 const emails = {
   hello: 'Здравствуйте',
 };
@@ -190,6 +208,7 @@ const messages = {
   emails,
   game,
   llm,
+  settings,
 } as const;
 
 export default messages;

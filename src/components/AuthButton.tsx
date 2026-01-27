@@ -8,11 +8,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from './AuthModal';
 // локализация
 import { useTranslations } from 'next-intl';
+// Импортируем Link для навигации
+import Link from 'next/link';
 
 // Функциональный компонент кнопки авторизации
 export default function AuthButton() {
     const t = useTranslations('auth');
     const tCommon = useTranslations('common');
+    const tSettings = useTranslations('settings');
     // Используем хук useAuth для получения данных о пользователе
     // Деструктуризация объекта: извлекаем user и signOut
     const { user, signOut } = useAuth();
@@ -123,6 +126,18 @@ export default function AuthButton() {
                     Это просто информационный элемент */}
                 <MenuItem disabled>
                     <Typography variant="body2">{tCommon('id')}: {user.id}</Typography>
+                </MenuItem>
+
+                {/* Divider - разделитель между элементами меню */}
+                <Divider />
+
+                {/* Ссылка на страницу настроек */}
+                <MenuItem
+                    component={Link}
+                    href="/settings"
+                    onClick={handleProfileClose}
+                >
+                    <Typography>{tSettings('title')}</Typography>
                 </MenuItem>
 
                 {/* Divider - разделитель между элементами меню */}

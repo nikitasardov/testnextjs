@@ -178,6 +178,24 @@ const api = {
     failedToGeneratePrompt: '无法生成提示',
 };
 
+const settings = {
+    title: '设置',
+    telegramSettings: 'Telegram设置',
+    telegramBotToken: 'Telegram机器人令牌',
+    telegramBotTokenPlaceholder: '输入机器人令牌',
+    telegramBotTokenHint: '您可以从Telegram的@BotFather获取机器人令牌',
+    telegramChatId: '通知聊天ID',
+    telegramChatIdPlaceholder: '输入聊天ID',
+    telegramChatIdHint: '您可以从Telegram的特殊机器人获取聊天ID',
+    save: '保存',
+    saving: '保存中...',
+    saveSuccess: '设置已成功保存',
+    loadError: '加载设置错误',
+    saveError: '保存设置错误',
+    errorPrefix: '错误',
+    unknownError: '未知错误',
+};
+
 const emails = {
     hello: '您好',
 };
@@ -193,6 +211,7 @@ const messages = {
     emails,
     game,
     llm,
+    settings,
 } as const;
 
 export default messages;

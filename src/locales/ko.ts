@@ -178,6 +178,24 @@ const api = {
     failedToGeneratePrompt: '프롬프트 생성 실패',
 };
 
+const settings = {
+    title: '설정',
+    telegramSettings: 'Telegram 설정',
+    telegramBotToken: 'Telegram 봇 토큰',
+    telegramBotTokenPlaceholder: '봇 토큰 입력',
+    telegramBotTokenHint: 'Telegram의 @BotFather에서 봇 토큰을 얻을 수 있습니다',
+    telegramChatId: '알림용 채팅 ID',
+    telegramChatIdPlaceholder: '채팅 ID 입력',
+    telegramChatIdHint: 'Telegram의 특수 봇에서 채팅 ID를 얻을 수 있습니다',
+    save: '저장',
+    saving: '저장 중...',
+    saveSuccess: '설정이 성공적으로 저장되었습니다',
+    loadError: '설정 로드 오류',
+    saveError: '설정 저장 오류',
+    errorPrefix: '오류',
+    unknownError: '알 수 없는 오류',
+};
+
 const emails = {
     hello: '안녕하세요',
 };
@@ -193,6 +211,7 @@ const messages = {
     emails,
     game,
     llm,
+    settings,
 } as const;
 
 export default messages;

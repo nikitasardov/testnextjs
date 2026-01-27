@@ -175,6 +175,24 @@ const api = {
   failedToGeneratePrompt: 'Error al generar el prompt',
 };
 
+const settings = {
+  title: 'Configuración',
+  telegramSettings: 'Configuración de Telegram',
+  telegramBotToken: 'Token del bot de Telegram',
+  telegramBotTokenPlaceholder: 'Ingrese el token del bot',
+  telegramBotTokenHint: 'Puede obtener el token del bot de @BotFather en Telegram',
+  telegramChatId: 'ID del chat para notificaciones',
+  telegramChatIdPlaceholder: 'Ingrese el ID del chat',
+  telegramChatIdHint: 'Puede obtener el ID del chat de un bot especial en Telegram',
+  save: 'Guardar',
+  saving: 'Guardando...',
+  saveSuccess: 'Configuración guardada exitosamente',
+  loadError: 'Error al cargar la configuración',
+  saveError: 'Error al guardar la configuración',
+  errorPrefix: 'Error',
+  unknownError: 'Error desconocido',
+};
+
 const emails = {
   hello: 'Hola',
 };
@@ -190,6 +208,7 @@ const messages = {
   emails,
   game,
   llm,
+  settings,
 } as const;
 
 export default messages;
