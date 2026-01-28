@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/utils/supabase";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
 import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
+import { ApiError, ApiErrorCode } from "@/utils/api-error";
+import { handleApiError } from "@/utils/api-error-handler";
 
 type UserSettings = {
     telegram_bot_token: string | null;
@@ -19,18 +21,24 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
-    const locale = getLocaleFromRequest(req);
-    const messages = getAllMessages(locale);
-
-    // Проверка авторизации через middleware
-    const authError = await authenticateRequest(req);
-    if (authError) {
-        return res.status(authError.statusCode).json({ error: authError.error });
-    }
-
-    const { user, token } = req as AuthenticatedRequest;
-
     try {
+        const locale = getLocaleFromRequest(req);
+        const messages = getAllMessages(locale);
+
+        // Проверка авторизации через middleware
+        const authError = await authenticateRequest(req);
+        if (authError) {
+            throw new ApiError(
+                authError.error === messages.api.invalidToken
+                    ? ApiErrorCode.INVALID_TOKEN
+                    : ApiErrorCode.UNAUTHORIZED,
+                authError.error,
+                authError.statusCode
+            );
+        }
+
+        const { user, token } = req as AuthenticatedRequest;
+
         // Создаем клиент с токеном пользователя для работы с RLS
         const supabase = createServerSupabaseClient(false, token);
 
@@ -43,9 +51,11 @@ export default async function handler(
                 .maybeSingle();
 
             if (error) {
-                return res.status(500).json({
-                    error: error.message,
-                });
+                throw new ApiError(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    error.message,
+                    500
+                );
             }
 
             // Если настройки не найдены, возвращаем пустые значения
@@ -70,17 +80,17 @@ export default async function handler(
 
             // Валидация: оба поля опциональны, но если переданы, должны быть строками
             if (telegram_bot_token !== undefined && typeof telegram_bot_token !== 'string' && telegram_bot_token !== null) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'telegram_bot_token must be a string or null',
-                });
+                throw new ApiError(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    'telegram_bot_token must be a string or null'
+                );
             }
 
             if (telegram_chat_id !== undefined && typeof telegram_chat_id !== 'string' && telegram_chat_id !== null) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'telegram_chat_id must be a string or null',
-                });
+                throw new ApiError(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    'telegram_chat_id must be a string or null'
+                );
             }
 
             // Сохраняем или обновляем настройки
@@ -96,20 +106,19 @@ export default async function handler(
                 });
 
             if (upsertError) {
-                return res.status(500).json({
-                    success: false,
-                    error: upsertError.message,
-                });
+                throw new ApiError(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    upsertError.message,
+                    500
+                );
             }
 
             return res.status(200).json({ success: true });
         } else {
-            return res.status(405).json({ error: messages.api.methodNotAllowed });
+            throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
         }
     } catch (error) {
-        return res.status(500).json({
-            error: error instanceof Error ? error.message : messages.api.internalError,
-        });
+        handleApiError(error, req, res);
     }
 }
 

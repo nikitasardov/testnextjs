@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
+import { ApiError, ApiErrorCode } from "@/utils/api-error";
+import { handleApiError } from "@/utils/api-error-handler";
 
 type User = {
     id: string;
@@ -55,24 +57,24 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
-    const locale = getLocaleFromRequest(req);
-    const messages = getAllMessages(locale);
-
-    if (req.method !== "GET") {
-        return res.status(405).json({ users: [], error: messages.api.methodNotAllowed });
-    }
-
     try {
+        const locale = getLocaleFromRequest(req);
+        const messages = getAllMessages(locale);
+
+        if (req.method !== "GET") {
+            throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
+        }
+
         // Используем Admin API с service_role ключом
         // ВАЖНО: Этот ключ должен быть только на сервере, никогда не используйте его на клиенте!
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!supabaseUrl || !supabaseServiceKey) {
-            return res.status(500).json({
-                users: [],
-                error: messages.api.internalError,
-            });
+            throw new ApiError(
+                ApiErrorCode.INTERNAL_ERROR,
+                messages.api.internalError
+            );
         }
 
         // Создаем клиент с service_role ключом для доступа к Admin API
@@ -87,10 +89,13 @@ export default async function handler(
         const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
         if (error) {
-            return res.status(500).json({
-                users: [],
-                error: error.message,
-            });
+            // Передаем оригинальную ошибку для логирования на сервере, но клиенту отправляем безопасное сообщение
+            throw new ApiError(
+                ApiErrorCode.INTERNAL_ERROR,
+                messages.api.internalError,
+                500,
+                error instanceof Error ? error : new Error(String(error))
+            );
         }
 
         // Форматируем данные пользователей с маскировкой email
@@ -103,10 +108,7 @@ export default async function handler(
 
         return res.status(200).json({ users: formattedUsers });
     } catch (error) {
-        return res.status(500).json({
-            users: [],
-            error: error instanceof Error ? error.message : messages.api.unknownError,
-        });
+        handleApiError(error, req, res, { users: [] });
     }
 }
 

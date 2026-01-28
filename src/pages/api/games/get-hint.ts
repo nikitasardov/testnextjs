@@ -7,6 +7,8 @@ import { getAllMessages } from '@/locales/loadMessages';
 import { sendTelegramMessage } from '@/utils/telegram-api';
 import { formatHintForTelegram } from '@/utils/format-hint';
 import { authenticateRequest, type AuthenticatedRequest } from '@/utils/auth-middleware';
+import { ApiError, ApiErrorCode } from '@/utils/api-error';
+import { handleApiError } from '@/utils/api-error-handler';
 
 type Data = {
     hint: string | null;
@@ -17,66 +19,61 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
-    const locale = getLocaleFromRequest(req);
-    const messages = getAllMessages(locale);
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ hint: null, error: messages.api.methodNotAllowed });
-    }
-
-    // Проверка авторизации через middleware
-    const authError = await authenticateRequest(req);
-    if (authError) {
-        return res.status(authError.statusCode).json({ hint: null, error: authError.error });
-    }
-
-    const { user, token } = req as AuthenticatedRequest;
-
-    // Получаем состояние игры
-    const { droppables } = req.body;
-
-    if (!droppables || typeof droppables !== 'object') {
-        return res.status(400).json({ hint: null, error: messages.api.droppablesRequired });
-    }
-
-    // Формируем промпт на бекенде
-    const promptResult = (() => {
-        try {
-            return {
-                prompt: generateHintPrompt(droppables as DroppablesConfig, messages.llm),
-                error: null as Error | null,
-            };
-        } catch (error) {
-            return {
-                prompt: null as string | null,
-                error: error instanceof Error ? error : new Error('Failed to generate prompt'),
-            };
-        }
-    })();
-
-    if (promptResult.error) {
-        return res.status(400).json({
-            hint: null,
-            error: promptResult.error.message || messages.api.failedToGeneratePrompt,
-        });
-    }
-
-    const prompt = promptResult.prompt!;
-    // Выводим сформированный промпт в консоль сервера
-    console.log('=== Сформированный промпт для LLM ===');
-    console.log(prompt);
-    console.log('=====================================');
-
-    const apiKey = process.env.VSEGPT_API_KEY;
-
-    if (!apiKey) {
-        return res.status(500).json({
-            hint: null,
-            error: messages.api.vsegptApiKeyNotConfigured,
-        });
-    }
-
     try {
+        const locale = getLocaleFromRequest(req);
+        const messages = getAllMessages(locale);
+
+        if (req.method !== 'POST') {
+            throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
+        }
+
+        // Проверка авторизации через middleware
+        const authError = await authenticateRequest(req);
+        if (authError) {
+            throw new ApiError(
+                authError.error === messages.api.invalidToken
+                    ? ApiErrorCode.INVALID_TOKEN
+                    : ApiErrorCode.UNAUTHORIZED,
+                authError.error,
+                authError.statusCode
+            );
+        }
+
+        const { user, token } = req as AuthenticatedRequest;
+
+        // Получаем состояние игры
+        const { droppables } = req.body;
+
+        if (!droppables || typeof droppables !== 'object') {
+            throw new ApiError(ApiErrorCode.MISSING_PARAMETER, messages.api.droppablesRequired);
+        }
+
+        // Формируем промпт на бекенде
+        let prompt: string;
+        try {
+            prompt = generateHintPrompt(droppables as DroppablesConfig, messages.llm);
+        } catch (error) {
+            throw new ApiError(
+                ApiErrorCode.VALIDATION_ERROR,
+                messages.api.failedToGeneratePrompt,
+                400,
+                error instanceof Error ? error : undefined
+            );
+        }
+        // Выводим сформированный промпт в консоль сервера
+        console.log('=== Сформированный промпт для LLM ===');
+        console.log(prompt);
+        console.log('=====================================');
+
+        const apiKey = process.env.VSEGPT_API_KEY;
+
+        if (!apiKey) {
+            throw new ApiError(
+                ApiErrorCode.VSEGPT_API_KEY_NOT_CONFIGURED,
+                messages.api.vsegptApiKeyNotConfigured
+            );
+        }
+
         // Используем недорогую модель gpt-3.5-turbo или другую доступную модель
         const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo';
 
@@ -102,19 +99,20 @@ export default async function handler(
         if (!response.ok) {
             const errorText = await response.text();
             console.error('VseGPT API error:', response.status, errorText);
-            return res.status(response.status).json({
-                hint: null,
-                error: `${messages.api.vsegptApiError}: ${response.statusText}`,
-            });
+            throw new ApiError(
+                ApiErrorCode.VSEGPT_API_ERROR,
+                `${messages.api.vsegptApiError}: ${response.statusText}`,
+                response.status
+            );
         }
 
         const data = await response.json();
 
         if (!data.choices?.[0]?.message) {
-            return res.status(500).json({
-                hint: null,
-                error: messages.api.invalidResponseFormat,
-            });
+            throw new ApiError(
+                ApiErrorCode.VSEGPT_INVALID_RESPONSE,
+                messages.api.invalidResponseFormat
+            );
         }
 
         const hint = data.choices[0].message.content.trim();
@@ -169,11 +167,7 @@ export default async function handler(
 
         return res.status(200).json({ hint });
     } catch (error) {
-        console.error('Error calling VseGPT API:', error);
-        return res.status(500).json({
-            hint: null,
-            error: error instanceof Error ? error.message : messages.api.unknownError,
-        });
+        handleApiError(error, req, res, { hint: null });
     }
 }
 

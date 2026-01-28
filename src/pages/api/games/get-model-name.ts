@@ -1,4 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { ApiError, ApiErrorCode } from '@/utils/api-error';
+import { handleApiError } from '@/utils/api-error-handler';
+import { getLocaleFromRequest } from '@/utils/i18n-api';
+import { getAllMessages } from '@/locales/loadMessages';
 
 type Data = {
     modelName: string;
@@ -9,11 +13,14 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>,
 ) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ modelName: 'AI', error: 'Method not allowed' });
-    }
-
     try {
+        const locale = getLocaleFromRequest(req);
+        const messages = getAllMessages(locale);
+
+        if (req.method !== 'GET') {
+            throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
+        }
+
         // Получаем название модели из переменной окружения
         const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo';
 
@@ -30,10 +37,7 @@ export default async function handler(
 
         return res.status(200).json({ modelName });
     } catch (error) {
-        return res.status(500).json({
-            modelName: 'AI',
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        handleApiError(error, req, res, { modelName: 'AI' });
     }
 }
 

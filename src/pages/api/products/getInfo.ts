@@ -3,6 +3,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
+import { ApiError, ApiErrorCode } from "@/utils/api-error";
+import { handleApiError } from "@/utils/api-error-handler";
 
 type ProductType = {
   id: number;
@@ -19,20 +21,20 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>,
 ) {
-  const locale = getLocaleFromRequest(req);
-  const messages = getAllMessages(locale);
-
-  if (req.method !== "GET") {
-    return res.status(405).json({ product: null, error: messages.api.methodNotAllowed });
-  }
-
-  const { product_id } = req.query;
-
-  if (!product_id || typeof product_id !== 'string') {
-    return res.status(400).json({ product: null, error: messages.api.productIdRequired });
-  }
-
   try {
+    const locale = getLocaleFromRequest(req);
+    const messages = getAllMessages(locale);
+
+    if (req.method !== "GET") {
+      throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
+    }
+
+    const { product_id } = req.query;
+
+    if (!product_id || typeof product_id !== 'string') {
+      throw new ApiError(ApiErrorCode.MISSING_PARAMETER, messages.api.productIdRequired);
+    }
+
     const supabase = createServerSupabaseClient();
 
     const { data, error } = await supabase
@@ -42,24 +44,25 @@ export default async function handler(
       .maybeSingle();
 
     if (error) {
-      return res.status(500).json({
-        product: null,
-        error: error.message,
-      });
+      // Передаем оригинальную ошибку для логирования на сервере, но клиенту отправляем безопасное сообщение
+      throw new ApiError(
+        ApiErrorCode.INTERNAL_ERROR,
+        messages.api.internalError,
+        500,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     if (!data) {
-      return res.status(404).json({
-        product: null,
-        error: messages.products.notFound(product_id),
-      });
+      throw new ApiError(
+        ApiErrorCode.NOT_FOUND,
+        messages.products.notFound(product_id),
+        404
+      );
     }
 
     return res.status(200).json({ product: data as ProductType });
   } catch (error) {
-    return res.status(500).json({
-      product: null,
-      error: error instanceof Error ? error.message : messages.api.internalError,
-    });
+    handleApiError(error, req, res, { product: null });
   }
 }
