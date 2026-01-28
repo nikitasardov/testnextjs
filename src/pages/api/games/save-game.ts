@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
+import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
 
 type Data = {
     success: boolean;
@@ -19,14 +20,14 @@ export default async function handler(
         return res.status(405).json({ success: false, error: messages.api.methodNotAllowed });
     }
 
-    const { gameType, droppables } = req.body;
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: messages.api.unauthorized });
+    // Проверка авторизации через middleware
+    const authError = await authenticateRequest(req);
+    if (authError) {
+        return res.status(authError.statusCode).json({ success: false, error: authError.error });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const { user, token } = req as AuthenticatedRequest;
+    const { gameType, droppables } = req.body;
 
     if (!gameType || !droppables) {
         return res.status(400).json({ success: false, error: messages.api.gameTypeAndDroppablesRequired });
@@ -37,16 +38,6 @@ export default async function handler(
     }
 
     try {
-        // Создаем клиент для проверки токена
-        const supabaseAuth = createServerSupabaseClient(false);
-
-        // Проверяем токен и получаем пользователя
-        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-
-        if (authError || !user) {
-            return res.status(401).json({ success: false, error: messages.api.invalidToken });
-        }
-
         // Создаем клиент с токеном пользователя для работы с RLS
         const supabase = createServerSupabaseClient(false, token);
 

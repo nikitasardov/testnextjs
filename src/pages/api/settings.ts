@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@/utils/supabase";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
+import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
 
 type UserSettings = {
     telegram_bot_token: string | null;
@@ -21,25 +22,15 @@ export default async function handler(
     const locale = getLocaleFromRequest(req);
     const messages = getAllMessages(locale);
 
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: messages.api.unauthorized });
+    // Проверка авторизации через middleware
+    const authError = await authenticateRequest(req);
+    if (authError) {
+        return res.status(authError.statusCode).json({ error: authError.error });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const { user, token } = req as AuthenticatedRequest;
 
     try {
-        // Создаем клиент для проверки токена
-        const supabaseAuth = createServerSupabaseClient(false);
-
-        // Проверяем токен и получаем пользователя
-        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-
-        if (authError || !user) {
-            return res.status(401).json({ error: messages.api.invalidToken });
-        }
-
         // Создаем клиент с токеном пользователя для работы с RLS
         const supabase = createServerSupabaseClient(false, token);
 

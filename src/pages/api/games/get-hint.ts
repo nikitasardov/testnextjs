@@ -6,6 +6,7 @@ import { getLocaleFromRequest } from '@/utils/i18n-api';
 import { getAllMessages } from '@/locales/loadMessages';
 import { sendTelegramMessage } from '@/utils/telegram-api';
 import { formatHintForTelegram } from '@/utils/format-hint';
+import { authenticateRequest, type AuthenticatedRequest } from '@/utils/auth-middleware';
 
 type Data = {
     hint: string | null;
@@ -23,27 +24,13 @@ export default async function handler(
         return res.status(405).json({ hint: null, error: messages.api.methodNotAllowed });
     }
 
-    // Проверка авторизации
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ hint: null, error: messages.api.unauthorized });
+    // Проверка авторизации через middleware
+    const authError = await authenticateRequest(req);
+    if (authError) {
+        return res.status(authError.statusCode).json({ hint: null, error: authError.error });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-
-    // Проверяем токен и получаем пользователя
-    const supabaseAuth = createServerSupabaseClient(false);
-    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser(token).catch(() => ({
-        data: { user: null },
-        error: { message: 'Authentication failed' },
-    }));
-
-    if (authError || !authUser) {
-        return res.status(401).json({ hint: null, error: messages.api.invalidToken });
-    }
-
-    const user = authUser;
+    const { user, token } = req as AuthenticatedRequest;
 
     // Получаем состояние игры
     const { droppables } = req.body;
