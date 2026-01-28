@@ -61,6 +61,14 @@ export default function Home() {
               <span className={cardFooter}>{t('requiresAuth')} →</span>
             </Link>
 
+            <Link href="/settings" className={cardLink}>
+              <h2 className={cardTitle}>{t('settings')}</h2>
+              <p className={cardText}>
+                {t('settingsDescription')}
+              </p>
+              <span className={cardFooter}>{t('requiresAuth')} →</span>
+            </Link>
+
             <div className={cardBase}>
               <h2 className={cardTitle}>{t('products')}</h2>
               <p className={`${cardText} mb-4`}>
@@ -99,6 +107,38 @@ export default function Home() {
               <li className="flex items-start">
                 <span className="mr-2">✓</span>
                 <span>{t('aiHints')}</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('multilingual')}</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('telegramNotifications')}</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('llmFormatting')}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-6 p-6 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full">
+            <h3 className="text-lg font-semibold mb-4 text-black dark:text-zinc-50">
+              {t('technicalFeatures')}
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left text-sm text-zinc-600 dark:text-zinc-400">
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('unifiedApiFormat')}</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('centralizedErrorHandling')}</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>{t('authMiddleware')}</span>
               </li>
             </ul>
           </div>
