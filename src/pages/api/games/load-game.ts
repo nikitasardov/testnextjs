@@ -5,19 +5,15 @@ import { getAllMessages } from "@/locales/loadMessages";
 import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
 import { ApiError, ApiErrorCode } from "@/utils/api-error";
 import { handleApiError } from "@/utils/api-error-handler";
+import type { ApiResponse } from "@/types/api-response";
 
 type GameConfig = {
     droppables: { [key: string]: { name: string, items: string[] } };
 };
 
-type Data = {
-    config: GameConfig | null;
-    error?: string;
-};
-
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<GameConfig | null>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -72,12 +68,18 @@ export default async function handler(
         }
 
         if (!data) {
-            return res.status(200).json({ config: null });
+            return res.status(200).json({
+                success: true,
+                data: null,
+            });
         }
 
-        return res.status(200).json({ config: { droppables: data.droppables } });
+        return res.status(200).json({
+            success: true,
+            data: { droppables: data.droppables },
+        });
     } catch (error) {
-        handleApiError(error, req, res, { config: null });
+        handleApiError(error, req, res);
     }
 }
 

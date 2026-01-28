@@ -5,6 +5,7 @@ import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
 import { ApiError, ApiErrorCode } from "@/utils/api-error";
 import { handleApiError } from "@/utils/api-error-handler";
+import type { ApiResponse } from "@/types/api-response";
 
 type ProductType = {
   id: number;
@@ -12,14 +13,9 @@ type ProductType = {
   created_at: string;
 };
 
-type Data = {
-  product: ProductType | null;
-  error?: string;
-};
-
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Data>,
+  res: NextApiResponse<ApiResponse<ProductType>>,
 ) {
   try {
     const locale = getLocaleFromRequest(req);
@@ -61,8 +57,11 @@ export default async function handler(
       );
     }
 
-    return res.status(200).json({ product: data as ProductType });
+    return res.status(200).json({
+      success: true,
+      data: data as ProductType,
+    });
   } catch (error) {
-    handleApiError(error, req, res, { product: null });
+    handleApiError(error, req, res);
   }
 }

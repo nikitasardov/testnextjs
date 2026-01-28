@@ -25,11 +25,14 @@ function Users() {
                 const response = await fetch("/api/users");
                 const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.error || t('loadError'));
+                if (!response.ok || !data.success) {
+                    // Новый формат: data.error.message или data.error (строка)
+                    const errorMessage = data.error?.message || data.error || t('loadError');
+                    throw new Error(errorMessage);
                 }
 
-                setUsers(data.users || []);
+                // Новый формат: data.data вместо data.users
+                setUsers(data.data || []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : t('unknownError'));
             } finally {

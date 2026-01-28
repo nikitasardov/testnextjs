@@ -10,8 +10,12 @@ interface ProductType {
 }
 
 interface ApiResponse {
-    product: ProductType | null;
-    error?: string;
+    success: boolean;
+    data?: ProductType;
+    error?: {
+        code: string;
+        message: string;
+    } | string;
 }
 
 export default function TestApi() {
@@ -19,7 +23,7 @@ export default function TestApi() {
     const tCommon = useTranslations('common');
     const [productId, setProductId] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
-    const [result, setResult] = useState<ApiResponse | null>(null);
+    const [result, setResult] = useState<ProductType | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleTestAPI = async () => {
@@ -43,24 +47,30 @@ export default function TestApi() {
                 validateStatus: (status) => status < 500, // Принимаем статусы < 500 как успешные
             });
 
-            if (response.data.error) {
-                setError(response.data.error);
+            if (!response.data.success || response.data.error) {
+                // Новый формат: response.data.error.message или response.data.error (строка)
+                const errorMessage = typeof response.data.error === 'string'
+                    ? response.data.error
+                    : response.data.error?.message || t('loadError');
+                setError(errorMessage);
                 setResult(null);
             } else {
-                setResult(response.data);
+                // Новый формат: response.data.data вместо response.data.product
+                setResult(response.data.data || null);
                 setError(null);
             }
-            console.log(response.data);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response) {
                 const errorData = err.response.data as ApiResponse;
-                setError(errorData.error || err.message);
+                const errorMessage = typeof errorData.error === 'string'
+                    ? errorData.error
+                    : errorData.error?.message || err.message;
+                setError(errorMessage);
                 setResult(null);
             } else {
                 setError(err instanceof Error ? err.message : t('requestError'));
                 setResult(null);
             }
-            console.error('Ошибка запроса:', err);
         } finally {
             setLoading(false);
         }
@@ -101,7 +111,7 @@ export default function TestApi() {
                 </Alert>
             )}
 
-            {result?.product && (
+            {result && (
                 <Box>
                     <Typography variant="h6" gutterBottom>
                         {t('productData')}:
@@ -121,7 +131,7 @@ export default function TestApi() {
                             border: (theme) => `1px solid ${theme.palette.divider}`,
                         }}
                     >
-                        {JSON.stringify(result.product, null, 2)}
+                        {JSON.stringify(result, null, 2)}
                     </Box>
                 </Box>
             )}

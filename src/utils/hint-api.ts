@@ -29,14 +29,19 @@ export async function getHintFromLLM(droppables: DroppablesConfig): Promise<{ hi
 
         const result = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || !result.success) {
+            // Новый формат: result.error.message или result.error (строка)
+            const errorMessage = typeof result.error === 'string'
+                ? result.error
+                : result.error?.message || 'Ошибка при получении подсказки';
             return {
                 hint: null,
-                error: result.error || 'Ошибка при получении подсказки',
+                error: errorMessage,
             };
         }
 
-        return { hint: result.hint };
+        // Новый формат: result.data.hint вместо result.hint
+        return { hint: result.data?.hint || null };
     } catch (error) {
         return {
             hint: null,

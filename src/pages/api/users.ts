@@ -1,20 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "@/utils/supabase";
 import { getLocaleFromRequest } from "@/utils/i18n-api";
 import { getAllMessages } from "@/locales/loadMessages";
 import { ApiError, ApiErrorCode } from "@/utils/api-error";
 import { handleApiError } from "@/utils/api-error-handler";
+import type { ApiResponse } from "@/types/api-response";
 
 type User = {
     id: string;
     email?: string;
     created_at: string;
     last_sign_in_at?: string;
-};
-
-type Data = {
-    users: User[];
-    error?: string;
 };
 
 /**
@@ -55,7 +51,7 @@ function maskEmail(email: string | undefined | null): string | undefined {
 
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<User[]>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -67,23 +63,8 @@ export default async function handler(
 
         // Используем Admin API с service_role ключом
         // ВАЖНО: Этот ключ должен быть только на сервере, никогда не используйте его на клиенте!
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!supabaseUrl || !supabaseServiceKey) {
-            throw new ApiError(
-                ApiErrorCode.INTERNAL_ERROR,
-                messages.api.internalError
-            );
-        }
-
-        // Создаем клиент с service_role ключом для доступа к Admin API
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-            },
-        });
+        // Используем единообразный способ создания клиента через createServerSupabaseClient
+        const supabaseAdmin = createServerSupabaseClient(true);
 
         // Получаем список всех пользователей
         const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
@@ -106,9 +87,12 @@ export default async function handler(
             last_sign_in_at: user.last_sign_in_at || undefined,
         }));
 
-        return res.status(200).json({ users: formattedUsers });
+        return res.status(200).json({
+            success: true,
+            data: formattedUsers,
+        });
     } catch (error) {
-        handleApiError(error, req, res, { users: [] });
+        handleApiError(error, req, res);
     }
 }
 

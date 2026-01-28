@@ -50,7 +50,6 @@ export default function Products() {
                 }
             } catch (err) {
                 setError(err instanceof Error ? err.message : t('loadError'));
-                console.error('Ошибка загрузки товаров:', err);
             } finally {
                 setLoading(false);
             }

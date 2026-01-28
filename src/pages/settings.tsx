@@ -44,11 +44,14 @@ function Settings() {
 
                 const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.error || t('loadError'));
+                if (!response.ok || !data.success) {
+                    // Новый формат: data.error.message или data.error (строка)
+                    const errorMessage = data.error?.message || data.error || t('loadError');
+                    throw new Error(errorMessage);
                 }
 
-                setSettings(data.settings || {
+                // Новый формат: data.data вместо data.settings
+                setSettings(data.data || {
                     telegram_bot_token: null,
                     telegram_chat_id: null,
                 });
@@ -91,8 +94,10 @@ function Settings() {
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || t('saveError'));
+            if (!response.ok || !data.success) {
+                // Новый формат: data.error.message или data.error (строка)
+                const errorMessage = data.error?.message || data.error || t('saveError');
+                throw new Error(errorMessage);
             }
 
             setSuccess(true);

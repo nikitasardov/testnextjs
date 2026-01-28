@@ -9,15 +9,11 @@ import { formatHintForTelegram } from '@/utils/format-hint';
 import { authenticateRequest, type AuthenticatedRequest } from '@/utils/auth-middleware';
 import { ApiError, ApiErrorCode } from '@/utils/api-error';
 import { handleApiError } from '@/utils/api-error-handler';
-
-type Data = {
-    hint: string | null;
-    error?: string;
-};
+import type { ApiResponse } from '@/types/api-response';
 
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<{ hint: string }>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -152,9 +148,7 @@ export default async function handler(
                             telegramMessage
                         );
 
-                        if (result.success) {
-                            console.log('Подсказка успешно отправлена в Telegram');
-                        } else {
+                        if (!result.success) {
                             console.error('Ошибка отправки подсказки в Telegram:', result.error);
                         }
                     }
@@ -165,9 +159,12 @@ export default async function handler(
             })();
         }
 
-        return res.status(200).json({ hint });
+        return res.status(200).json({
+            success: true,
+            data: { hint },
+        });
     } catch (error) {
-        handleApiError(error, req, res, { hint: null });
+        handleApiError(error, req, res);
     }
 }
 

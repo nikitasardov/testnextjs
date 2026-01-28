@@ -49,7 +49,7 @@ function DndExample() {
       setIsLoading(true);
       const { config, error } = await loadGameConfig('example');
       if (error) {
-        console.error('Ошибка загрузки конфигурации:', error);
+        // Игнорируем ошибки загрузки конфигурации
       } else if (config) {
         // Загружаем только items, имена будут вычисляться динамически
         const updatedDroppables = { ...config.droppables };
@@ -125,8 +125,8 @@ function DndExample() {
             clearTimeout(saveTimeoutRef.current);
           }
           saveTimeoutRef.current = setTimeout(() => {
-            saveGameConfig('example', updates).catch(error => {
-              console.error('Ошибка сохранения:', error);
+            saveGameConfig('example', updates).catch(() => {
+              // Игнорируем ошибки сохранения
             });
             saveTimeoutRef.current = null;
           }, 300);
@@ -153,8 +153,8 @@ function DndExample() {
           clearTimeout(saveTimeoutRef.current);
         }
         saveTimeoutRef.current = setTimeout(() => {
-          saveGameConfig('example', updates).catch(error => {
-            console.error('Ошибка сохранения:', error);
+          saveGameConfig('example', updates).catch(() => {
+            // Игнорируем ошибки сохранения
           });
           saveTimeoutRef.current = null;
         }, 300);

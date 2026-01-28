@@ -5,21 +5,16 @@ import { getAllMessages } from "@/locales/loadMessages";
 import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
 import { ApiError, ApiErrorCode } from "@/utils/api-error";
 import { handleApiError } from "@/utils/api-error-handler";
+import type { ApiResponse } from "@/types/api-response";
 
 type UserSettings = {
     telegram_bot_token: string | null;
     telegram_chat_id: string | null;
 };
 
-type Data = {
-    settings?: UserSettings;
-    success?: boolean;
-    error?: string;
-};
-
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<UserSettings | null>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -61,7 +56,8 @@ export default async function handler(
             // Если настройки не найдены, возвращаем пустые значения
             if (!data) {
                 return res.status(200).json({
-                    settings: {
+                    success: true,
+                    data: {
                         telegram_bot_token: null,
                         telegram_chat_id: null,
                     },
@@ -69,7 +65,8 @@ export default async function handler(
             }
 
             return res.status(200).json({
-                settings: {
+                success: true,
+                data: {
                     telegram_bot_token: data.telegram_bot_token,
                     telegram_chat_id: data.telegram_chat_id,
                 },
@@ -113,7 +110,10 @@ export default async function handler(
                 );
             }
 
-            return res.status(200).json({ success: true });
+            return res.status(200).json({
+                success: true,
+                data: null,
+            });
         } else {
             throw new ApiError(ApiErrorCode.METHOD_NOT_ALLOWED, messages.api.methodNotAllowed);
         }

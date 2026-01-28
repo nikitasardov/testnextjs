@@ -138,8 +138,8 @@ function Dnd15Puzzle() {
           Notifications.warn(t('noSolution'), 'red', true);
         }
       }
-    } catch (error) {
-      console.error('Ошибка при проверке решаемости:', error);
+    } catch {
+      // Игнорируем ошибки проверки решаемости
     }
   };
 
@@ -207,8 +207,7 @@ function Dnd15Puzzle() {
           return;
         }
       }
-    } catch (error) {
-      console.error('Ошибка при проверке решаемости:', error);
+    } catch {
       // Продолжаем выполнение, если проверка не удалась
     }
 
@@ -226,8 +225,7 @@ function Dnd15Puzzle() {
       }
 
       Notifications.notify(hint, '#9c27b0', false, 30000);
-    } catch (error) {
-      console.error('Ошибка при получении подсказки:', error);
+    } catch {
       Notifications.warn(t('hintError'));
     } finally {
       setIsHintLoading(false);
@@ -241,12 +239,13 @@ function Dnd15Puzzle() {
         const response = await fetch('/api/games/get-model-name');
         if (response.ok) {
           const data = await response.json();
-          if (data.modelName) {
-            setLlmModelName(data.modelName);
+          // Новый формат: data.data.modelName вместо data.modelName
+          if (data.success && data.data?.modelName) {
+            setLlmModelName(data.data.modelName);
           }
         }
-      } catch (error) {
-        console.error('Ошибка загрузки названия модели:', error);
+      } catch {
+        // Игнорируем ошибки загрузки названия модели
       }
     };
     loadModelName();
@@ -264,7 +263,6 @@ function Dnd15Puzzle() {
       setIsLoading(true);
       const { config, error } = await loadGameConfig('15-puzzle');
       if (error) {
-        console.error('Ошибка загрузки конфигурации:', error);
         // Если ошибка загрузки, начинаем новую игру
         const droppableKeys = Object.keys(droppables);
         const shuffledDroppables = shuffleArray(droppableKeys);

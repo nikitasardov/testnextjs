@@ -3,15 +3,11 @@ import { ApiError, ApiErrorCode } from '@/utils/api-error';
 import { handleApiError } from '@/utils/api-error-handler';
 import { getLocaleFromRequest } from '@/utils/i18n-api';
 import { getAllMessages } from '@/locales/loadMessages';
-
-type Data = {
-    modelName: string;
-    error?: string;
-};
+import type { ApiResponse } from '@/types/api-response';
 
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<{ modelName: string }>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -35,9 +31,12 @@ export default async function handler(
             .replaceAll('-', ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase());
 
-        return res.status(200).json({ modelName });
+        return res.status(200).json({
+            success: true,
+            data: { modelName },
+        });
     } catch (error) {
-        handleApiError(error, req, res, { modelName: 'AI' });
+        handleApiError(error, req, res);
     }
 }
 

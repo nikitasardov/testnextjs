@@ -12,14 +12,13 @@ interface ProductType {
 export default function Product() {
     const router = useRouter();
     const { product_id } = router.query;
-    const [productInfo, setProductInfo] = useState<ProductType|null>(null)
+    const [productInfo, setProductInfo] = useState<ProductType | null>(null)
     useEffect(() => {
         async function getProduct() {
             const data = await supabase.from('products').select('*').eq('id', product_id).maybeSingle();
             if (data.data) {
                 setProductInfo(data.data as ProductType)
             }
-            console.log(data)
         }
 
         getProduct()

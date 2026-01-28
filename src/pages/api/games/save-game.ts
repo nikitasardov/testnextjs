@@ -5,15 +5,11 @@ import { getAllMessages } from "@/locales/loadMessages";
 import { authenticateRequest, type AuthenticatedRequest } from "@/utils/auth-middleware";
 import { ApiError, ApiErrorCode } from "@/utils/api-error";
 import { handleApiError } from "@/utils/api-error-handler";
-
-type Data = {
-    success: boolean;
-    error?: string;
-};
+import type { ApiResponse } from "@/types/api-response";
 
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<Data>,
+    res: NextApiResponse<ApiResponse<null>>,
 ) {
     try {
         const locale = getLocaleFromRequest(req);
@@ -75,9 +71,12 @@ export default async function handler(
             );
         }
 
-        return res.status(200).json({ success: true });
+        return res.status(200).json({
+            success: true,
+            data: null,
+        });
     } catch (error) {
-        handleApiError(error, req, res, { success: false });
+        handleApiError(error, req, res);
     }
 }
 

@@ -39,8 +39,12 @@ export async function saveGameConfig(
 
         const result = await response.json();
 
-        if (!response.ok) {
-            return { success: false, error: result.error || 'Ошибка сохранения' };
+        if (!response.ok || !result.success) {
+            // Новый формат: result.error.message или result.error (строка)
+            const errorMessage = typeof result.error === 'string'
+                ? result.error
+                : result.error?.message || 'Ошибка сохранения';
+            return { success: false, error: errorMessage };
         }
 
         return { success: true };
@@ -76,11 +80,19 @@ export async function loadGameConfig(
 
         const result = await response.json();
 
-        if (!response.ok) {
-            return { config: null, error: result.error || 'Ошибка загрузки' };
+        if (!response.ok || !result.success) {
+            // Новый формат: result.error.message или result.error (строка)
+            const errorMessage = result.error?.message || result.error || 'Ошибка загрузки';
+            return { config: null, error: errorMessage };
         }
 
-        return { config: result.config };
+        // Новый формат: result.data вместо result.config
+        // result.data может быть null, если конфигурация не найдена
+        if (result.data) {
+            return { config: result.data };
+        }
+
+        return { config: null };
     } catch (error) {
         return {
             config: null,

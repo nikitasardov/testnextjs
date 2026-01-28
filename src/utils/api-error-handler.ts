@@ -2,18 +2,7 @@ import type { NextApiResponse, NextApiRequest } from 'next';
 import { ApiError, ApiErrorCode } from './api-error';
 import { getLocaleFromRequest } from './i18n-api';
 import { getAllMessages } from '@/locales/loadMessages';
-
-/**
- * Формат ответа с ошибкой для совместимости со старыми форматами
- */
-type ErrorResponse = {
-    error?: string;
-    hint?: null;
-    config?: null;
-    product?: null;
-    users?: [];
-    success?: boolean;
-};
+import type { ApiErrorResponse } from '@/types/api-response';
 
 /**
  * Обрабатывает ошибку и возвращает локализованное сообщение
@@ -72,17 +61,15 @@ function getLocalizedMessage(code: ApiErrorCode, messages: ReturnType<typeof get
 }
 
 /**
- * Создает объект ответа с ошибкой в формате, совместимом со старыми роутами
+ * Создает стандартный ответ с ошибкой в формате ApiErrorResponse
  * @param error - ошибка
  * @param req - Next.js request
- * @param defaultData - данные по умолчанию для конкретного типа ответа
- * @returns объект ответа с ошибкой
+ * @returns стандартный ответ с ошибкой и HTTP статус код
  */
-function createErrorResponse(
+function createStandardErrorResponse(
     error: Error,
-    req: NextApiRequest,
-    defaultData: Record<string, unknown> = {}
-): ErrorResponse & { statusCode: number } {
+    req: NextApiRequest
+): { response: ApiErrorResponse; statusCode: number } {
     const { code, message, statusCode } = getLocalizedError(error, req);
 
     // Логируем ошибку для отладки (только на сервере)
@@ -103,26 +90,28 @@ function createErrorResponse(
     }
 
     return {
-        ...defaultData,
-        error: message,
+        response: {
+            success: false,
+            error: {
+                code,
+                message,
+            },
+        },
         statusCode,
     };
 }
 
 /**
- * Обрабатывает ошибку и отправляет ответ клиенту
- * Поддерживает разные форматы ответов для обратной совместимости
+ * Обрабатывает ошибку и отправляет стандартный ответ клиенту
  * 
  * @param error - ошибка для обработки
  * @param req - Next.js request
  * @param res - Next.js response
- * @param defaultData - данные по умолчанию для конкретного типа ответа (например, { hint: null })
  */
 export function handleApiError(
     error: unknown,
     req: NextApiRequest,
-    res: NextApiResponse,
-    defaultData: Record<string, unknown> = {}
+    res: NextApiResponse
 ): void {
     let apiError: ApiError;
     if (error instanceof ApiError) {
@@ -133,29 +122,6 @@ export function handleApiError(
         apiError = new ApiError(ApiErrorCode.UNKNOWN_ERROR, 'Unknown error occurred');
     }
 
-    const errorResponse = createErrorResponse(apiError, req, defaultData);
-    const { statusCode, ...responseData } = errorResponse;
-
-    res.status(statusCode).json(responseData);
+    const { response, statusCode } = createStandardErrorResponse(apiError, req);
+    res.status(statusCode).json(response);
 }
-
-/**
- * Обертка для API handlers с автоматической обработкой ошибок
- * 
- * @param handler - функция-обработчик роута
- * @param defaultErrorData - данные по умолчанию для ошибок (например, { hint: null })
- * @returns обернутый handler с обработкой ошибок
- */
-export function withErrorHandler<T = unknown>(
-    handler: (req: NextApiRequest, res: NextApiResponse<T>) => Promise<void> | void,
-    defaultErrorData: Record<string, unknown> = {}
-) {
-    return async (req: NextApiRequest, res: NextApiResponse<T>) => {
-        try {
-            await handler(req, res);
-        } catch (error) {
-            handleApiError(error, req, res, defaultErrorData);
-        }
-    };
-}
-
