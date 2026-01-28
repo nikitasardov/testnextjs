@@ -1,11 +1,34 @@
 
 import { createClient, SupabaseClient, SupabaseClientOptions } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+/**
+ * Валидирует переменные окружения Supabase
+ * Выбрасывает ошибку с понятным сообщением, если переменные отсутствуют
+ */
+function validateSupabaseEnv(): { url: string; anonKey: string } {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url) {
+        throw new Error(
+            'NEXT_PUBLIC_SUPABASE_URL is missing. Please set it in your .env file.'
+        );
+    }
+
+    if (!anonKey) {
+        throw new Error(
+            'NEXT_PUBLIC_SUPABASE_ANON_KEY is missing. Please set it in your .env file.'
+        );
+    }
+
+    return { url, anonKey };
+}
+
+// Валидируем переменные окружения при загрузке модуля
+const { url: supabaseUrl, anonKey: supabaseKey } = validateSupabaseEnv();
 
 // Клиент для использования на клиенте (в компонентах React)
-export const supabase = createClient(supabaseUrl!, supabaseKey!);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Создает клиент Supabase для использования на сервере (в API routes)
