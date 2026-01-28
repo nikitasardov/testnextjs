@@ -15,19 +15,17 @@ export default async function handler(
 
     try {
         // Получаем название модели из переменной окружения
-        const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo-1106';
+        const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo';
 
         // Форматируем название для отображения
         // Убираем префиксы типа "openai/", "qwen/" и т.д.
-        let modelName = model;
-        if (model.includes('/')) {
-            const parts = model.split('/');
-            modelName = parts[parts.length - 1];
-        }
+        const baseModelName = model.includes('/')
+            ? model.split('/').at(-1)!
+            : model;
 
         // Преобразуем в читаемый формат
-        modelName = modelName
-            .replace(/-/g, ' ')
+        const modelName = baseModelName
+            .replaceAll('-', ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase());
 
         return res.status(200).json({ modelName });

@@ -1,20 +1,22 @@
 // Функция для перемешивания массива
 export function shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
+    Array.from({ length: shuffled.length - 1 }, (_, index) => {
+        const i = shuffled.length - 1 - index;
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    });
     return shuffled;
 }
 
 // Функция для генерации областей droppable
 export function generateDroppables(count: number, namePrefix: string = 'Область '): { [key: string]: { name: string, items: string[] } } {
-    const droppables: { [key: string]: { name: string, items: string[] } } = {};
-    for (let i = 1; i <= count; i++) {
-        droppables[`droppable${i}`] = { name: `${namePrefix}${i}`, items: [] };
-    }
-    return droppables;
+    return Object.fromEntries(
+        Array.from({ length: count }, (_, index) => {
+            const i = index + 1;
+            return [`droppable${i}`, { name: `${namePrefix}${i}`, items: [] }];
+        })
+    ) as { [key: string]: { name: string, items: string[] } };
 }
 
 // Функция для генерации элементов draggable

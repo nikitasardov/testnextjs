@@ -195,22 +195,19 @@ App.getInitialProps = async (appContext: AppContext) => {
     const appProps = await NextApp.getInitialProps(appContext);
 
     // Определяем локаль по той же логике, что и middleware
-    let locale: AppLocale = defaultLocale;
-
-    // Проверяем cookie
     const cookieHeader = appContext.ctx.req?.headers.cookie;
     const cookieLocale = getCookieFromHeader(cookieHeader, 'locale');
-    if (cookieLocale && locales.includes(cookieLocale as AppLocale)) {
-      locale = cookieLocale as AppLocale;
-    } else {
-      // Проверяем Accept-Language
-      const acceptLanguage = appContext.ctx.req?.headers['accept-language'];
-      if (acceptLanguage) {
-        const preferred = acceptLanguage.split(',').map((part) => part.trim().split(';')[0]);
-        const match = preferred.find((lang) => locales.includes(lang as AppLocale));
-        if (match) locale = match as AppLocale;
-      }
-    }
+    const validCookieLocale = cookieLocale && locales.includes(cookieLocale as AppLocale)
+      ? cookieLocale as AppLocale
+      : null;
+
+    const acceptLanguage = appContext.ctx.req?.headers['accept-language'];
+    const preferredFromHeader = acceptLanguage
+      ? acceptLanguage.split(',').map((part) => part.trim().split(';')[0])
+      : [];
+    const matchFromHeader = preferredFromHeader.find((lang) => locales.includes(lang as AppLocale)) as AppLocale | undefined;
+
+    const locale: AppLocale = validCookieLocale || matchFromHeader || defaultLocale;
 
     const messages = getAllMessages(locale);
 

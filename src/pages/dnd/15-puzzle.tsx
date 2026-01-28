@@ -78,14 +78,9 @@ function Dnd15Puzzle() {
     const tiles = board.filter(x => x !== 0);
 
     // 2. Считаем инверсии (I)
-    let inversions = 0;
-    for (let i = 0; i < tiles.length; i++) {
-      for (let j = i + 1; j < tiles.length; j++) {
-        if (tiles[i] > tiles[j]) {
-          inversions++;
-        }
-      }
-    }
+    const inversions = tiles.reduce((count, tile, i) => {
+      return count + tiles.slice(i + 1).filter(otherTile => tile > otherTile).length;
+    }, 0);
 
     // 3. Находим строку пустой клетки снизу (emptyRowFromBottom)
     const emptyIndex = board.indexOf(0);

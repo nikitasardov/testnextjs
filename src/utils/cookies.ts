@@ -13,12 +13,9 @@ export function setCookie(name: string, value: string, days = 365): void {
         return;
     }
 
-    let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-        expires = `; expires=${date.toUTCString()}`;
-    }
+    const expires = days
+        ? `; expires=${new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString()}`
+        : '';
     globalThis.document.cookie = `${name}=${value || ''}${expires}; path=/`;
 }
 

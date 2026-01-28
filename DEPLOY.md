@@ -218,7 +218,7 @@ cat ~/.ssh/github_actions_deploy
 
 **VSEGPT_MODEL**
 - Name: `VSEGPT_MODEL`
-- Value: Модель LLM для использования (опционально, по умолчанию: `openai/gpt-3.5-turbo-1106`)
+- Value: Модель LLM для использования (опционально, по умолчанию: `openai/gpt-3.5-turbo`)
 
 #### Шаг 3: Проверка workflow файла
 

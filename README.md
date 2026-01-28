@@ -114,7 +114,8 @@ SUPABASE_SERVICE_ROLE_KEY=ваш-service-role-ключ
 
 ```
 VSEGPT_API_KEY=ваш-api-ключ
-VSEGPT_MODEL=openai/gpt-3.5-turbo-1106
+VSEGPT_MODEL=openai/gpt-3.5-turbo
+VSEGPT_MODEL_FORMATTER=qwen/qwen3-next-80b-a3b
 ```
 
 **Технические детали:**

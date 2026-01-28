@@ -39,14 +39,9 @@ export function isSolvable(board: number[]): boolean {
     const tiles = board.filter(x => x !== 0);
 
     // 2. Считаем инверсии (I)
-    let inversions = 0;
-    for (let i = 0; i < tiles.length; i++) {
-        for (let j = i + 1; j < tiles.length; j++) {
-            if (tiles[i] > tiles[j]) {
-                inversions++;
-            }
-        }
-    }
+    const inversions = tiles.reduce((count, tile, i) => {
+        return count + tiles.slice(i + 1).filter(otherTile => tile > otherTile).length;
+    }, 0);
 
     // 3. Находим строку пустой клетки снизу (emptyRowFromBottom)
     const emptyIndex = board.indexOf(0);
@@ -64,21 +59,33 @@ export function isSolvable(board: number[]): boolean {
  * @returns текстовое представление доски
  */
 function formatBoardState(board: number[][], llmMessages: Messages['llm']): string {
-    let boardText = `${llmMessages.hintPromptBoardState}\n`;
-    for (let row = 0; row < 4; row++) {
-        const rowValues: string[] = [];
-        for (let col = 0; col < 4; col++) {
-            const value = board[row][col];
-            if (value === 0) {
-                rowValues.push('_');
-            } else {
-                rowValues.push(value.toString());
-            }
-        }
-        boardText += rowValues.join(' | ') + '\n';
-    }
-    boardText += `\n${llmMessages.hintPromptEmptyCell}\n`;
-    return boardText;
+    // Форматируем с выравниванием: каждое число занимает 2 символа
+    const rowsText = board.map(row =>
+        row.map(value => {
+            const str = value === 0 ? '_' : value.toString();
+            return str.padStart(2, ' '); // Выравниваем по правому краю (2 символа)
+        }).join(' | ')
+    ).join('\n');
+
+    return `${llmMessages.hintPromptBoardState}\n${rowsText}\n\n${llmMessages.hintPromptEmptyCell}\n`;
+}
+
+/**
+ * Преобразует массив массивов 4x4 в форматированное представление для Telegram
+ * @param board - массив 4x4, где 0 - пустая ячейка
+ * @returns форматированное представление доски для Telegram (с моноширинным шрифтом)
+ */
+export function formatBoardStateForTelegram(board: number[][]): string {
+    // Форматируем с выравниванием: каждое число занимает 2 символа
+    const rowsText = board.map(row =>
+        row.map(value => {
+            const str = value === 0 ? '_' : value.toString();
+            return str.padStart(2, ' '); // Выравниваем по правому краю (2 символа)
+        }).join(' | ')
+    ).join('\n');
+
+    // Используем моноширинный шрифт для лучшего отображения в Telegram
+    return `<code>${rowsText}</code>`;
 }
 
 /**
@@ -90,10 +97,9 @@ function formatBoardState(board: number[][], llmMessages: Messages['llm']): stri
 export function generateHintPrompt(droppables: DroppablesConfig, llmMessages: Messages['llm']): string {
     // Преобразуем droppables в массив массивов
     const board = getBoardState(droppables);
-    const board4x4: number[][] = [];
-    for (let row = 0; row < 4; row++) {
-        board4x4.push(board.slice(row * 4, (row + 1) * 4));
-    }
+    const board4x4: number[][] = Array.from({ length: 4 }, (_, row) =>
+        board.slice(row * 4, (row + 1) * 4)
+    );
     const boardText = formatBoardState(board4x4, llmMessages);
 
     const prompt = `${llmMessages.hintPromptTitle}

@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from '@/utils/supabase';
-import { generateHintPrompt } from '@/utils/puzzle-hint-prompt';
+import { generateHintPrompt, formatBoardStateForTelegram, getBoardState } from '@/utils/puzzle-hint-prompt';
 import { DroppablesConfig } from '@/utils/game-api';
 import { getLocaleFromRequest } from '@/utils/i18n-api';
 import { getAllMessages } from '@/locales/loadMessages';
+import { sendTelegramMessage } from '@/utils/telegram-api';
+import { formatHintForTelegram } from '@/utils/format-hint';
 
 type Data = {
     hint: string | null;
@@ -30,17 +32,18 @@ export default async function handler(
 
     const token = authHeader.replace('Bearer ', '');
 
-    // Проверяем токен
-    try {
-        const supabaseAuth = createServerSupabaseClient(false);
-        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    // Проверяем токен и получаем пользователя
+    const supabaseAuth = createServerSupabaseClient(false);
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser(token).catch(() => ({
+        data: { user: null },
+        error: { message: 'Authentication failed' },
+    }));
 
-        if (authError || !user) {
-            return res.status(401).json({ hint: null, error: messages.api.invalidToken });
-        }
-    } catch {
-        return res.status(401).json({ hint: null, error: messages.api.authenticationFailed });
+    if (authError || !authUser) {
+        return res.status(401).json({ hint: null, error: messages.api.invalidToken });
     }
+
+    const user = authUser;
 
     // Получаем состояние игры
     const { droppables } = req.body;
@@ -50,19 +53,32 @@ export default async function handler(
     }
 
     // Формируем промпт на бекенде
-    let prompt: string;
-    try {
-        prompt = generateHintPrompt(droppables as DroppablesConfig, messages.llm);
-        // Выводим сформированный промпт в консоль сервера
-        console.log('=== Сформированный промпт для LLM ===');
-        console.log(prompt);
-        console.log('=====================================');
-    } catch (error) {
+    const promptResult = (() => {
+        try {
+            return {
+                prompt: generateHintPrompt(droppables as DroppablesConfig, messages.llm),
+                error: null as Error | null,
+            };
+        } catch (error) {
+            return {
+                prompt: null as string | null,
+                error: error instanceof Error ? error : new Error('Failed to generate prompt'),
+            };
+        }
+    })();
+
+    if (promptResult.error) {
         return res.status(400).json({
             hint: null,
-            error: error instanceof Error ? error.message : messages.api.failedToGeneratePrompt,
+            error: promptResult.error.message || messages.api.failedToGeneratePrompt,
         });
     }
+
+    const prompt = promptResult.prompt!;
+    // Выводим сформированный промпт в консоль сервера
+    console.log('=== Сформированный промпт для LLM ===');
+    console.log(prompt);
+    console.log('=====================================');
 
     const apiKey = process.env.VSEGPT_API_KEY;
 
@@ -75,7 +91,7 @@ export default async function handler(
 
     try {
         // Используем недорогую модель gpt-3.5-turbo или другую доступную модель
-        const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo-1106';
+        const model = process.env.VSEGPT_MODEL || 'openai/gpt-3.5-turbo';
 
         const response = await fetch('https://api.vsegpt.ru:6070/v1/chat/completions', {
             method: 'POST',
@@ -120,6 +136,49 @@ export default async function handler(
         console.log('=== Ответ от LLM ===');
         console.log(hint);
         console.log('===================');
+
+        // Отправляем подсказку в Telegram, если у пользователя настроены уведомления
+        // Делаем это асинхронно, чтобы не блокировать ответ пользователю
+        if (user) {
+            (async () => {
+                try {
+                    const supabase = createServerSupabaseClient(false, token);
+                    const { data: settings } = await supabase
+                        .from('user_settings')
+                        .select('telegram_bot_token, telegram_chat_id')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+
+                    if (settings?.telegram_bot_token && settings?.telegram_chat_id) {
+                        // Форматируем подсказку через LLM для красивого отображения в Telegram
+                        const formattedHint = await formatHintForTelegram(hint, messages.llm);
+
+                        // Форматируем схему доски для Telegram
+                        const board = getBoardState(droppables as DroppablesConfig);
+                        const board4x4: number[][] = Array.from({ length: 4 }, (_, row) =>
+                            board.slice(row * 4, (row + 1) * 4)
+                        );
+                        const boardText = formatBoardStateForTelegram(board4x4);
+
+                        const telegramMessage = `🎮 <b>${messages.llm.telegramHintTitle}</b>\n\n${boardText}\n\n${formattedHint}`;
+                        const result = await sendTelegramMessage(
+                            settings.telegram_bot_token,
+                            settings.telegram_chat_id,
+                            telegramMessage
+                        );
+
+                        if (result.success) {
+                            console.log('Подсказка успешно отправлена в Telegram');
+                        } else {
+                            console.error('Ошибка отправки подсказки в Telegram:', result.error);
+                        }
+                    }
+                } catch (error) {
+                    // Игнорируем ошибки отправки в Telegram, чтобы не влиять на основной функционал
+                    console.error('Ошибка при отправке подсказки в Telegram:', error);
+                }
+            })();
+        }
 
         return res.status(200).json({ hint });
     } catch (error) {

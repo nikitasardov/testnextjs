@@ -35,7 +35,8 @@ cat ~/.ssh/github_actions_deploy
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon ключ                     | Из настроек Supabase                                |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Service role ключ             | Из настроек Supabase (опционально)                  |
 | `VSEGPT_API_KEY`                | API ключ VseGPT               | Для работы подсказок в игре                         |
-| `VSEGPT_MODEL`                  | Модель LLM                    | Например: `openai/gpt-3.5-turbo-1106` (опционально) |
+| `VSEGPT_MODEL`                  | Модель LLM                    | Например: `openai/gpt-3.5-turbo` (опционально)      |
+| `VSEGPT_MODEL_FORMATTER`        | Модель LLM                    | Например: `qwen/qwen3-next-80b-a3b` (опционально)   |
 
 ## Шаг 3: Проверка файлов
 
