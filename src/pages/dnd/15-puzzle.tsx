@@ -23,6 +23,37 @@ import { getHintFromLLM } from '@/utils/hint-api';
 import { useTranslations } from 'next-intl';
 import styles from './15-puzzle.module.css';
 
+// Функция для проверки, являются ли две ячейки соседними на доске 4x4
+function areAdjacentCells(cell1Id: string, cell2Id: string): boolean {
+  const getCellIndex = (cellId: string): number => {
+    return Number.parseInt(cellId.replace('droppable', ''), 10);
+  };
+
+  const index1 = getCellIndex(cell1Id);
+  const index2 = getCellIndex(cell2Id);
+
+  // Проверяем, что индексы валидны (от 1 до 16)
+  if (index1 < 1 || index1 > 16 || index2 < 1 || index2 > 16) {
+    return false;
+  }
+
+  const diff = Math.abs(index1 - index2);
+
+  // Соседние по горизонтали: разница = 1 и в одной строке
+  if (diff === 1) {
+    const row1 = Math.floor((index1 - 1) / 4);
+    const row2 = Math.floor((index2 - 1) / 4);
+    return row1 === row2;
+  }
+
+  // Соседние по вертикали: разница = 4
+  if (diff === 4) {
+    return true;
+  }
+
+  return false;
+}
+
 function Dnd15Puzzle() {
   const t = useTranslations('game');
   const theme = useTheme();
@@ -336,34 +367,31 @@ function Dnd15Puzzle() {
 
     // Проверяем, является ли целевая область droppable
     if (isDroppable(droppableId)) {
-      // Проверяем, что в droppable меньше 2 элементов
-      if (currentDroppable !== droppableId && droppables[droppableId].items.length === 0) {
+      // Проверяем, что:
+      // 1. Целевая ячейка пустая
+      // 2. Это не та же самая ячейка
+      // 3. Целевая ячейка является соседней к текущей
+      if (
+        currentDroppable !== droppableId &&
+        droppables[droppableId].items.length === 0 &&
+        currentDroppable &&
+        areAdjacentCells(currentDroppable, droppableId)
+      ) {
         setDroppables(prev => {
           const updates = { ...prev };
-          // Удаляем элемент из текущего droppable (если есть)
-          if (currentDroppable) {
-            updates[currentDroppable] = {
-              ...prev[currentDroppable],
-              items: prev[currentDroppable].items.filter(id => id !== itemId)
-            };
-          }
-          // Добавляем элемент в новый droppable (если его там еще нет)
-          if (!updates[droppableId].items.includes(itemId)) {
-            updates[droppableId].items = [...updates[droppableId].items, itemId];
-          }
+          // Удаляем элемент из текущего droppable
+          updates[currentDroppable] = {
+            ...prev[currentDroppable],
+            items: prev[currentDroppable].items.filter(id => id !== itemId)
+          };
+          // Добавляем элемент в новый droppable
+          updates[droppableId].items = [...updates[droppableId].items, itemId];
           return updates;
         });
       }
-    } else if (currentDroppable) {
-      // Если элемент перетащили не в droppable, удаляем его из текущего droppable
-      setDroppables(prev => ({
-        ...prev,
-        [currentDroppable]: {
-          ...prev[currentDroppable],
-          items: prev[currentDroppable].items.filter(id => id !== itemId)
-        },
-      }));
     }
+    // Если элемент перетащили не в droppable или перемещение недопустимо,
+    // ничего не делаем (элемент останется на месте)
   }
 
   // Показываем уведомление "новая игра" при первом переходе или после перемешивания
