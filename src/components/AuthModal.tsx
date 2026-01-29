@@ -29,6 +29,60 @@ interface AuthModalProps {
 
 export default function AuthModal({ open, onClose }: AuthModalProps) {
     const t = useTranslations('auth');
+
+    // Функция для определения типа ошибки и возврата понятного сообщения
+    const getErrorMessage = (error: unknown, defaultErrorKey: string): string => {
+        if (!(error instanceof Error)) {
+            return t(defaultErrorKey);
+        }
+
+        const errorMessage = error.message.toLowerCase();
+        const errorName = error.name.toLowerCase();
+
+        // Логируем детали ошибки в консоль разработчика (только в dev режиме)
+        if (process.env.NODE_ENV === 'development') {
+            console.error('[AuthModal] Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            });
+        }
+
+        // Проверка на сетевые ошибки
+        if (
+            errorMessage.includes('failed to fetch') ||
+            errorMessage.includes('network error') ||
+            errorMessage.includes('networkerror') ||
+            errorName.includes('networkerror')
+        ) {
+            return t('networkError');
+        }
+
+        // Проверка на SSL ошибки
+        if (
+            errorMessage.includes('ssl') ||
+            errorMessage.includes('certificate') ||
+            errorMessage.includes('tls') ||
+            errorMessage.includes('protocol error') ||
+            errorMessage.includes('cipher mismatch')
+        ) {
+            return t('sslError');
+        }
+
+        // Проверка на ошибки подключения
+        if (
+            errorMessage.includes('connection') ||
+            errorMessage.includes('connect') ||
+            errorMessage.includes('unreachable') ||
+            errorMessage.includes('timeout')
+        ) {
+            return t('connectionError');
+        }
+
+        // Если это ошибка от Supabase, возвращаем её сообщение
+        // Иначе возвращаем общее сообщение об ошибке
+        return error.message || t(defaultErrorKey);
+    };
     // Создаём состояния компонента с помощью хука useState
     const [tab, setTab] = useState(0);           // Активная вкладка (0 - вход, 1 - регистрация)
     const [email, setEmail] = useState('');      // Email пользователя
@@ -83,9 +137,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 setSuccessMsg(t('registrationSuccess'));
             }
         } catch (err) {
-            // Обработка ошибки
-            // err instanceof Error - проверка, является ли err объектом Error
-            setErrorMsg(err instanceof Error ? err.message : t('registrationError'));
+            // Обработка ошибки с определением типа ошибки
+            setErrorMsg(getErrorMessage(err, 'registrationError'));
         } finally {
             // Независимо от результата, отключаем загрузку
             setLoading(false);
@@ -123,7 +176,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 }, 1000);  // 1000 миллисекунд = 1 секунда
             }
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : t('loginError'));
+            // Обработка ошибки с определением типа ошибки
+            setErrorMsg(getErrorMessage(err, 'loginError'));
         } finally {
             setLoading(false);
         }
@@ -150,7 +204,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
             setSuccessMsg(t('resetPasswordEmailSent'));
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : t('resetPasswordError'));
+            // Обработка ошибки с определением типа ошибки
+            setErrorMsg(getErrorMessage(err, 'resetPasswordError'));
         } finally {
             setLoading(false);
         }

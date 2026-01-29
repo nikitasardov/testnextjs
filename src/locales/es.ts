@@ -49,6 +49,9 @@ const auth = {
   linkError: 'Error al procesar el enlace de restablecimiento de contraseña',
   checkingAuth: 'Verificando autorización...',
   authRequired: 'Se requiere autorización',
+  networkError: 'Error de conexión al servidor. Verifique su conexión a internet e intente más tarde',
+  sslError: 'Error de conexión segura. Intente más tarde o contacte al soporte',
+  connectionError: 'No se pudo conectar al servidor. Verifique su conexión a internet',
 };
 
 const home = {

@@ -52,6 +52,9 @@ const auth = {
     linkError: 'パスワードリセットリンクの処理エラー',
     checkingAuth: '認証を確認中...',
     authRequired: '認証が必要です',
+    networkError: 'サーバーへの接続エラー。インターネット接続を確認して、後でもう一度お試しください',
+    sslError: 'セキュア接続エラー。後でもう一度お試しいただくか、サポートにお問い合わせください',
+    connectionError: 'サーバーに接続できませんでした。インターネット接続を確認してください',
 };
 
 const home = {

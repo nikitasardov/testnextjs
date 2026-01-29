@@ -52,6 +52,9 @@ const auth = {
     linkError: '处理密码重置链接错误',
     checkingAuth: '正在检查授权...',
     authRequired: '需要授权',
+    networkError: '连接服务器错误。请检查您的互联网连接，稍后重试',
+    sslError: '安全连接错误。请稍后重试或联系支持',
+    connectionError: '无法连接到服务器。请检查您的互联网连接',
 };
 
 const home = {

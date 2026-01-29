@@ -49,6 +49,9 @@ const auth = {
   linkError: 'Error processing password reset link',
   checkingAuth: 'Checking authorization...',
   authRequired: 'Authorization required',
+  networkError: 'Connection error to server. Check your internet connection and try again later',
+  sslError: 'Secure connection error. Please try again later or contact support',
+  connectionError: 'Failed to connect to server. Check your internet connection',
 };
 
 const home = {

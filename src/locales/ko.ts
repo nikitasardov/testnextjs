@@ -52,6 +52,9 @@ const auth = {
     linkError: '비밀번호 재설정 링크 처리 오류',
     checkingAuth: '인증 확인 중...',
     authRequired: '인증이 필요합니다',
+    networkError: '서버 연결 오류. 인터넷 연결을 확인하고 나중에 다시 시도하세요',
+    sslError: '보안 연결 오류. 나중에 다시 시도하거나 지원팀에 문의하세요',
+    connectionError: '서버에 연결할 수 없습니다. 인터넷 연결을 확인하세요',
 };
 
 const home = {
