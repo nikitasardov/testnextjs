@@ -98,6 +98,7 @@ const users = {
     usersNotFound: '사용자를 찾을 수 없습니다',
     registrationDate: '등록 날짜',
     lastSignIn: '마지막 로그인',
+    lastActivity: '마지막 활동',
     loadError: '사용자 로드 오류',
     unknownError: '알 수 없는 오류',
 };

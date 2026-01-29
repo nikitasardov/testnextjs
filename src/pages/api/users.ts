@@ -11,6 +11,7 @@ type User = {
     email?: string;
     created_at: string;
     last_sign_in_at?: string;
+    last_activity_at?: string;
 };
 
 /**
@@ -85,6 +86,7 @@ export default async function handler(
             email: maskEmail(user.email), // Маскируем email на сервере
             created_at: user.created_at,
             last_sign_in_at: user.last_sign_in_at || undefined,
+            last_activity_at: (user.user_metadata?.last_activity_at as string) || undefined,
         }));
 
         return res.status(200).json({

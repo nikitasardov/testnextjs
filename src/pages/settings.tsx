@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { withAuth } from "@/components/withAuth";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,10 +21,11 @@ function Settings() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const hasLoadedRef = useRef(false);
 
     useEffect(() => {
         async function fetchSettings() {
-            if (!user) return;
+            if (!user || hasLoadedRef.current) return;
 
             try {
                 setLoading(true);
@@ -55,6 +56,7 @@ function Settings() {
                     telegram_bot_token: null,
                     telegram_chat_id: null,
                 });
+                hasLoadedRef.current = true;
             } catch (err) {
                 setError(err instanceof Error ? err.message : t('unknownError'));
             } finally {
@@ -63,7 +65,9 @@ function Settings() {
         }
 
         fetchSettings();
-    }, [user, t]);
+        // Убираем t из зависимостей, чтобы избежать перезагрузки при переключении вкладок
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

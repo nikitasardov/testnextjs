@@ -95,6 +95,7 @@ const users = {
   usersNotFound: 'Пользователи не найдены',
   registrationDate: 'Дата регистрации',
   lastSignIn: 'Последний вход',
+  lastActivity: 'Последняя активность',
   loadError: 'Ошибка при загрузке пользователей',
   unknownError: 'Неизвестная ошибка',
 };

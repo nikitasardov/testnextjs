@@ -7,6 +7,7 @@ interface User {
     email?: string;
     created_at: string;
     last_sign_in_at?: string;
+    last_activity_at?: string;
 }
 
 function Users() {
@@ -156,6 +157,14 @@ function Users() {
                                                         </span>{" "}
                                                         {formatDate(user.last_sign_in_at || "")}
                                                     </p>
+                                                    {user.last_activity_at && (
+                                                        <p>
+                                                            <span className="font-medium">
+                                                                {t('lastActivity')}:
+                                                            </span>{" "}
+                                                            {formatDate(user.last_activity_at)}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

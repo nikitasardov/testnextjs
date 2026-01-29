@@ -95,6 +95,7 @@ const users = {
   usersNotFound: 'Users not found',
   registrationDate: 'Registration date',
   lastSignIn: 'Last sign in',
+  lastActivity: 'Last activity',
   loadError: 'Error loading users',
   unknownError: 'Unknown error',
 };

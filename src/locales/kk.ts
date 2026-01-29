@@ -98,6 +98,7 @@ const users = {
     usersNotFound: 'Пайдаланушылар табылмады',
     registrationDate: 'Тіркелу күні',
     lastSignIn: 'Соңғы кіру',
+    lastActivity: 'Соңғы белсенділік',
     loadError: 'Пайдаланушыларды жүктеу қатесі',
     unknownError: 'Белгісіз қате',
 };

@@ -98,6 +98,7 @@ const users = {
     usersNotFound: '未找到用户',
     registrationDate: '注册日期',
     lastSignIn: '最后登录',
+    lastActivity: '最后活动',
     loadError: '加载用户错误',
     unknownError: '未知错误',
 };

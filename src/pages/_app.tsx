@@ -19,6 +19,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 // AuthProvider - провайдер контекста авторизации
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+// Хук для отслеживания активности пользователя
+import { useUserActivity } from '@/hooks/useUserActivity';
 
 // компоненты Material UI
 import { Box, AppBar, Toolbar, Container, Typography, IconButton } from '@mui/material';
@@ -165,6 +167,7 @@ export default function App(props: AppProps) {
       <IntlProviderWrapper>
         <AuthProvider>
           {/* AuthProvider - предоставляет контекст авторизации всем дочерним компонентам */}
+          <UserActivityTracker />
           <AppContent {...props} />
         </AuthProvider>
       </IntlProviderWrapper>
@@ -188,6 +191,12 @@ function IntlProviderWrapper({ children }: { readonly children: React.ReactNode 
       {children}
     </IntlProvider>
   );
+}
+
+// Компонент для отслеживания активности пользователя
+function UserActivityTracker() {
+  useUserActivity();
+  return null;
 }
 
 App.getInitialProps = async (appContext: AppContext) => {

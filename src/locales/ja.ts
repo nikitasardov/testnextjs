@@ -98,6 +98,7 @@ const users = {
     usersNotFound: 'ユーザーが見つかりません',
     registrationDate: '登録日',
     lastSignIn: '最終ログイン',
+    lastActivity: '最終アクティビティ',
     loadError: 'ユーザーの読み込みエラー',
     unknownError: '不明なエラー',
 };

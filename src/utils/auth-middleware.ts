@@ -107,7 +107,7 @@ export async function authenticateRequest(
 }
 
 /**
- * Тип-гард для проверки, что request аутентифицирован
+ * Проверки, что request аутентифицирован
  */
 export function isAuthenticatedRequest(req: NextApiRequest): req is AuthenticatedRequest {
     return 'user' in req && 'token' in req;
