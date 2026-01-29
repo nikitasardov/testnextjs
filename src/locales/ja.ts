@@ -83,7 +83,7 @@ const home = {
     technicalFeatures: '技術的特徴',
     unifiedApiFormat: '統一されたAPI応答形式',
     centralizedErrorHandling: '集中エラー処理',
-    authMiddleware: '認証ミドルウェア',
+    authMiddleware: '認可ミドルウェア（アクセス制御）',
     envValidation: '環境変数の検証',
     productList: '製品リスト',
     product: '製品',

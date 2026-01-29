@@ -83,7 +83,7 @@ const home = {
     technicalFeatures: 'Техникалық ерекшеліктер',
     unifiedApiFormat: 'Бірыңғай API жауап форматы',
     centralizedErrorHandling: 'Орталықтандырылған қателерді өңдеу',
-    authMiddleware: 'Авторизация middleware',
+    authMiddleware: 'Авторизация middleware (қолжетімділікті тексеру)',
     envValidation: 'Орта айнымалыларын тексеру',
     productList: 'Өнімдер тізімі',
     product: 'Өнім',

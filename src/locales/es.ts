@@ -80,7 +80,7 @@ const home = {
   technicalFeatures: 'Características técnicas',
   unifiedApiFormat: 'Formato unificado de respuestas API',
   centralizedErrorHandling: 'Manejo centralizado de errores',
-  authMiddleware: 'Middleware de autenticación',
+  authMiddleware: 'Middleware de autorización (control de acceso)',
   envValidation: 'Validación de variables de entorno',
   productList: 'Lista de productos',
   product: 'Producto',

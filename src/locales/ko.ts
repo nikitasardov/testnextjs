@@ -83,7 +83,7 @@ const home = {
     technicalFeatures: '기술적 특징',
     unifiedApiFormat: '통합 API 응답 형식',
     centralizedErrorHandling: '중앙 집중식 오류 처리',
-    authMiddleware: '인증 미들웨어',
+    authMiddleware: '권한 부여 미들웨어 (액세스 제어)',
     envValidation: '환경 변수 검증',
     productList: '제품 목록',
     product: '제품',

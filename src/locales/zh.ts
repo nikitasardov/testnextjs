@@ -83,7 +83,7 @@ const home = {
     technicalFeatures: '技术特性',
     unifiedApiFormat: '统一的API响应格式',
     centralizedErrorHandling: '集中式错误处理',
-    authMiddleware: '身份验证中间件',
+    authMiddleware: '授权中间件（访问控制）',
     envValidation: '环境变量验证',
     productList: '产品列表',
     product: '产品',

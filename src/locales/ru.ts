@@ -80,7 +80,7 @@ const home = {
   technicalFeatures: 'Технические особенности',
   unifiedApiFormat: 'Единый формат ответов API',
   centralizedErrorHandling: 'Централизованная обработка ошибок',
-  authMiddleware: 'Middleware для аутентификации',
+  authMiddleware: 'Middleware для авторизации (проверка прав доступа)',
   envValidation: 'Валидация переменных окружения',
   productList: 'Список товаров',
   product: 'Товар',
